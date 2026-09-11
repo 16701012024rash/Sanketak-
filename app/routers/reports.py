@@ -31,3 +31,15 @@ def check_status(token: str, db: Session = Depends(get_db)):
         "language": report.language,
         "submitted_at": report.submitted_at
     }
+
+@router.get("/")
+def list_reports(db: Session = Depends(get_db)):
+    reports = db.query(Report).all()
+    return reports
+
+@router.get("/{report_id}")
+def get_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        return {"error": "Report not found"}
+    return report
