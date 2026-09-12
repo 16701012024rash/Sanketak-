@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 from app.core.db import SessionLocal
 from app.models.report import Report
+from app.core.security import get_current_user
 import uuid
 import random
 
@@ -53,12 +54,12 @@ def check_status(token: str, db: Session = Depends(get_db)):
     }
 
 @router.get("/")
-def list_reports(db: Session = Depends(get_db)):
+def list_reports(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     reports = db.query(Report).all()
     return reports
 
 @router.get("/{report_id}")
-def get_report(report_id: str, db: Session = Depends(get_db)):
+def get_report(report_id: str, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         return {"error": "Report not found"}

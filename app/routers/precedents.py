@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.db import SessionLocal
 from app.models.precedent import HistoricalPrecedent
 from app.models.report import Report
+from app.core.security import get_current_user
 import random
 
 router = APIRouter(prefix="/precedents", tags=["precedents"])
@@ -20,7 +21,7 @@ def mock_embedding(text: str):
     return [random.uniform(-1, 1) for _ in range(8)]
 
 @router.get("/{report_id}")
-def get_precedents(report_id: str, limit: int = 3, db: Session = Depends(get_db)):
+def get_precedents(report_id: str, limit: int = 3, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         return {"error": "Report not found"}

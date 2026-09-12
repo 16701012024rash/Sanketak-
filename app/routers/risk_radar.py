@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.db import SessionLocal
 from app.models.report import Report
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/risk-radar", tags=["risk-radar"])
 
@@ -13,7 +14,7 @@ def get_db():
         db.close()
 
 @router.get("/")
-def risk_radar(threshold: float = 0.6, limit: int = 10, db: Session = Depends(get_db)):
+def risk_radar(threshold: float = 0.6, limit: int = 10, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     high_risk = (
         db.query(Report)
         .filter(Report.risk_score >= threshold)

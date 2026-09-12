@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.db import SessionLocal
 from app.models.report import Report
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/patterns", tags=["patterns"])
 
@@ -14,7 +15,7 @@ def get_db():
         db.close()
 
 @router.get("/")
-def get_patterns(min_count: int = 2, db: Session = Depends(get_db)):
+def get_patterns(min_count: int = 2, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     equipment_clusters = (
         db.query(Report.equipment_tag, func.count(Report.id).label("count"))
         .filter(Report.equipment_tag.isnot(None))
