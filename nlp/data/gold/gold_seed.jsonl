@@ -1,0 +1,202 @@
+// GOLD SET — hand-label these 30. Never train on this file.
+// Fill in each fingerprint below its narrative. Delete the // NARRATIVE comment lines? NO — keep them, they are skipped on load.
+
+// An employee's right index fingertip was amputated when the finger was caught between a piece of
+// over-pour and the door to the shaker-shack.
+// [OSHA]  heuristic said SIF=1 (score 6)
+{"report_id": "OSHA_2016065817", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// On January 10, 2024, at approximately 8:00 AM, an employee was delivering a semi-tractor at a
+// location. After lowering the semi-tractor and unhooking the securement device, the employee
+// retracted the jib into the standup/stowed position. The employee walked around the back of the truck
+// and the jib fell, striking him on the back and pinning him to the ground. The employee suffered
+// lacerations on the back of his head, right arm, side, and upper back, as well as a fractured sternum
+// and broken ribs.
+// [OSHA]  heuristic said SIF=1 (score 6)
+{"report_id": "OSHA_2024010221", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// An employee was working on a front-end loader, taking the lift cylinder from the hood. The employee
+// had the hood at a 90-degree angle. The hood moved and struck the employee on the leg, fracturing
+// both bones in the lower left leg.
+// [OSHA]  heuristic said SIF=1 (score 4)
+{"report_id": "OSHA_2015096429", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// An employee was changing the forks on a forklift. A fork slid down and crushed the employee's right
+// index finger, causing an injury requiring stitches.
+// [OSHA]  heuristic said SIF=1 (score 6)
+{"report_id": "OSHA_20181010278", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// An employee was cleaning the rollers on a piece of equipment when their left leg and ankle were
+// caught in the machine. The employee's left fibula was fractured and they sustained an open fracture
+// to the right ankle that required surgery.
+// [OSHA]  heuristic said SIF=1 (score 6)
+{"report_id": "OSHA_2025088147", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// An employee was on the shoulder of a highway when a truck entered the closed work area and struck
+// him. He suffered multiple fractures.
+// [OSHA]  heuristic said SIF=1 (score 4)
+{"report_id": "OSHA_20201010186", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// A guard was hit in the head, neck and chest by a combative patient in the emergency room.
+// [OSHA]  heuristic said SIF=0 (score 0)
+{"report_id": "OSHA_2017010046", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// A nurse was bitten by a patient on her right thumb and left chest area. The injuries required
+// surgery.
+// [OSHA]  heuristic said SIF=0 (score 0)
+{"report_id": "OSHA_2020098952", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// A maintenance technician was installing PVC onto a rack along a wall at the facility. He was
+// descending an extension ladder when the ladder kicked out from underneath him. He fell approximately
+// 3-4 feet to the ground and sustained a broken left femur.
+// [OSHA]  heuristic said SIF=0 (score 0)
+{"report_id": "OSHA_20231110414", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// An employee slipped on water on the tile floor and fell fracturing the right leg.
+// [OSHA]  heuristic said SIF=-1 (score 2)
+{"report_id": "OSHA_2015118685", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// An employee was loading wood from the back of pick up truck onto a smaller dump truck to move the
+// wood to various locations around the property. After loading the dump truck he stepped onto the back
+// of the dump truck's tailgate and fell, breaking his wrist and sustaining other injuries.
+// [OSHA]  heuristic said SIF=-1 (score 2)
+{"report_id": "OSHA_20201110902", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// An employee was carrying a stack of plates to a kitchen when she tripped and fell to the carpeted
+// floor. She suffered a dislocated left hip, a broken femur, and a laceration to the right thumb from
+// a glass plate.
+// [OSHA]  heuristic said SIF=-1 (score 2)
+{"report_id": "OSHA_2025076750", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// While climbing down the ladder after inspecting the crusher, the employee stepped on uneven ground.
+// At the same time he stepped down, he started to turn to walk away and tripped, resulting in the
+// injury.
+// [MSHA]  heuristic said SIF=1 (score 4)
+{"report_id": "MSHA_220092810007", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// EE SAID HE WAS CHECKING BELT ALIGNMENT WICH CAN BE SEEN FROM OFFICE HE THEN CLIMBED UP ON BARMACSAID
+// HE LOST BALANCE GRABED DRIVE BELTS THAT FEED CRUSHER RAN HIS HAND AROUND SHAFT BREAKING 2 FINGERS HE
+// IS NOT SUPPOSED TO BE ON CRUSHER HE DID NOT HAVE AN EXPLANATION WHY HE DID IT MY ASSESMENT SAFETY
+// VIOLATION, CARLESSNESS, WORK QUALIFICATION
+// [MSHA]  heuristic said SIF=1 (score 4)
+{"report_id": "MSHA_220011130167", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// Two EEs were using a torch, working on cylinder at quarry crusher. EE passed the torch, still
+// burning, hose attached to torch got caught. Torch tilted in the EE's hands as it was passed off,
+// shooting flame up other EE's shirt sleeve. Injured EE incurred a 2nd degree burn to right forearm.
+// EE was prescribed a topical ointment and pain medication. EE released to full duty.
+// [MSHA]  heuristic said SIF=1 (score 4)
+{"report_id": "MSHA_220163330003", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// EMPLOYEE WAS INSTRUCTING A CONTRACT EMPLOYEE AS TO THE PROPER OPERATION OF A BACKHOE. WHILE
+// BEGINNING TO SWITCH POSITIONS IN THE MACHINE, EE WAS ATTEMPTING TO ADJUST THE SEAT BY USING THE DOOR
+// FRAME TO PULL SEAT INTO POSITION. DURING THIS THE CONTRACT EE CLOSED THE DOOR, INJURING THE
+// EMPLOYEE'S FINGERS.
+// [MSHA]  heuristic said SIF=1 (score 4)
+{"report_id": "MSHA_220043220026", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// The employee was trying to install a retaining pin in a concrete form. When he tried to get the pin
+// in, the form came loose and pinched his finger in between the form pieces. The intial assessment of
+// the finger was that it was bruised and had a small cut on it. It has been later found that his
+// finger tip has a small hairline fracture in it.
+// [MSHA]  heuristic said SIF=1 (score 4)
+{"report_id": "MSHA_220082610004", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// EE WAS STRUCK BY A ROCK THAT FELL OUT BETWEEN ROOF BOLTS AND THE RIB. HE WAS STRUCK ON THE LEFT FOOT
+// RESULTING IN SWELLING AND A CONTUSION. HE WAS IN THE FACE AREA ON #1 UNIT, RUNNING A CONT INUOUS
+// MINER. ROCK WAS APPROXIMATELY 31" X 31" X 3 1/2".
+// [MSHA]  heuristic said SIF=1 (score 4)
+{"report_id": "MSHA_220033440037", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// While walking on road, injured slipped in oil spill on road way. *8/3/06--Meds given and scheduled
+// to begin therapy.
+// [MSHA]  heuristic said SIF=0 (score 0)
+{"report_id": "MSHA_220062260051", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// Wasp was on the bell cord, when the EE pulled the bell cord to call for the cage he was stung by the
+// wasp. EE received no medical treatment.
+// [MSHA]  heuristic said SIF=0 (score 0)
+{"report_id": "MSHA_220152860068", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// EE was using an 8lb sledge hammer to drive a rod out through a drain valve. EE experienced a sharp
+// pain in his upper back. EE was transported to a local hospital for evaluation. ER doctor gave EE
+// prescription strength medication and placed on restricted duty. Unable to work within his
+// restrictions, EE placed out of the plant.
+// [MSHA]  heuristic said SIF=0 (score 0)
+{"report_id": "MSHA_220063560017", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// WHILE OPERATING LOADER, EE HIT A BUMP AND THE SEAT BOTTOMED OUT AND INJURED HIS LOWER BACK.
+// [MSHA]  heuristic said SIF=-1 (score 2)
+{"report_id": "MSHA_220001170017", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// Employee walked between a forklift and 3 1/2 yard loader. Forklift rolled back a little bit and
+// pinched employee's left thight between rear of forklift and rear of loader, causing a contusion.
+// [MSHA]  heuristic said SIF=-1 (score 2)
+{"report_id": "MSHA_220073090006", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// Employee states that while getting ice cubes out of the ice machine in Plt 2 lunchroom he noticed
+// the ice bucket was overflowing so he dumped some ice out of the bucket. In doing so some ice fell
+// out of the bucket onto the floor. EE then stepped on the ice and his feet went out from under him.
+// he landed full weight on his shoulder.
+// [MSHA]  heuristic said SIF=-1 (score 2)
+{"report_id": "MSHA_220051710049", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// On June 10 2011 Employee # 1 was working for D.C.G. Peterson Brothers Inc. performing framing duties
+// to a new dry mineral storage building located in Manson Iowa. Five Employees were engaged in
+// building custom heavy wood frame doors. The doors were made of 2 by10 wood materials being placed
+// between sheets of 0.5 inch plywood. The door was approximately 9 feet 5 inches tall by 16 feet wide
+// weighing approximately 1 000 to 3 000 pounds. The bottom of the door contains two pieces of angle
+// iron approximately 3 inches by 3 inches 0.25 inch thick and 10 feet in length. Employee # 1 and his
+// crew attempted to move the door to an upright position by wrapping a synthetic or nylon strap around
+// the frame with the other end of the strap attached to one fork of a Caterpillar telehandler Model
+// Number # TH103. Employee # 2 operated the telehandler to raise the door up off the floor to the
+// upright position. The door was at an angle of approximately 75 degrees when Employee # 1 grabbed a
+// broom and began to sweep underneath the door. The strap slid off the fork of the telehandler and
+// struck Employee # 1 on his lower back. Employee # 1 fell to the ground in extreme pain. Rescue
+// service transported Employee # 1 to a local hospital who was later transported to Iowa Methodist
+// Hospital in Des Moines the same day. Employee # 1 underwent surgery to correct a fractured pelvis
+// and a fractured lower left leg. Employee # 1 was transported to Iowa Lutheran Hospital to begin
+// physical therapy after the surgeries. Employee # 1 later died from respiratory complications as well
+// as an infection.
+// [OSHA_CONSTRUCTION]  heuristic said SIF=1 (score 9)
+{"report_id": "OSHA_CONSTRUCTION_200534394", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// Employee #1 was working near a baggage conveyor belt when it actuated. He became caught by the
+// moving belt and was carried feet first into the nip point where two belts came together. Employee #1
+// sustained serious crushing injuries to his toes for which he was hospitalized. The system was not
+// locked out.
+// [OSHA_CONSTRUCTION]  heuristic said SIF=1 (score 6)
+{"report_id": "OSHA_CONSTRUCTION_201122546", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// On October 1 2012 Employee #1 was operating a mini-excavator at a construction site where a trench
+// was being dug for installation of a power line. The excavator rolled over as it was traversing a
+// hill. Employee #1 who was not wearing a seat belt sustained an unspecified amputation. He was
+// hospitalized.
+// [OSHA_CONSTRUCTION]  heuristic said SIF=1 (score 6)
+{"report_id": "OSHA_CONSTRUCTION_202655775", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// At approximately 11:30 a.m. on October 11 2007 Employee #1 was part of a twelve-man crew repairing
+// the roof of an unoccupied single-story 250 000 sq ft building in City of Industry CA. He was
+// installing a cap sheet near a skylight and mopping hot asphalt when he walked backward slipped and
+// fell onto freshly laid hot material. As he fell he tried to grab onto the asphalt mop cart to keep
+// his balance but his left forearm went into the hot asphalt contained in the cart. Employee #1
+// suffered second-degree burns to his face and left forearm. He was transported to Torrance Memorial
+// Hospital where he was treated for approximately 12 days.
+// [OSHA_CONSTRUCTION]  heuristic said SIF=0 (score 0)
+{"report_id": "OSHA_CONSTRUCTION_202474524", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// On June 20 2012 Employee #1 and Employee #2 both employed by Precision Plumbing Inc. were working
+// inside a commercial building. They were cutting concrete with a self-propelled floor saw powered by
+// liquid propane. They both were exposed to carbon monoxide fumes. Both Employee #1 and Employee #2
+// experienced systemic poisoning. Both were treated in a hospital emergency room. Employee #1 required
+// hospitalization and hyperbaric treatment. He was released after 4 days hospitalization.
+// [OSHA_CONSTRUCTION]  heuristic said SIF=-1 (score 2)
+{"report_id": "OSHA_CONSTRUCTION_200361145", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
+
+// At approximately 10:00 a.m. on February 7 2007 Employee #1 a Laborer was working on the ground
+// underneath a residential home foundation wood floor performing joist measurements. The employee was
+// attempting to stand up when he struck the right side of his head on the joist. Employee #1 suffered
+// a head injury. The employee was wearing a ball cap at the time of injury. Employee #1 was
+// hospitalized.
+// [OSHA_CONSTRUCTION]  heuristic said SIF=-1 (score 2)
+{"report_id": "OSHA_CONSTRUCTION_202495404", "language": "en", "extraction_status": "partial", "activity": null, "hazard": null, "exposure": null, "potential_consequence": null, "life_saving_rules": [], "context_flags": [], "barrier_failures": [], "annotator": "SJ", "notes": null}
