@@ -14,7 +14,7 @@
 #      Null is a valid, honest answer. Guessing is not.
 # =============================================================================
 
-version: "0.1"
+version: "0.2"
 
 # -----------------------------------------------------------------------------
 # 1. IOGP LIFE-SAVING RULES  (the spine — required by the problem statement)
@@ -171,6 +171,10 @@ barriers:
     label: "Scaffold / platform inspected and certified"
     category: BC_ENGINEERING
     applies_to: LSR_HEIGHT
+  - id: BAR_LADDER_SECURED
+    label: "Ladder footed, tied off, or otherwise secured"
+    category: BC_ENGINEERING
+    applies_to: LSR_HEIGHT
   - id: BAR_EDGE_PROTECTION
     label: "Guardrails / edge protection in place"
     category: BC_ENGINEERING
@@ -253,6 +257,10 @@ barriers:
     label: "Housekeeping / access routes clear"
     category: BC_ENGINEERING
     applies_to: CROSS_CUTTING
+  - id: BAR_EQUIPMENT_SECURED
+    label: "Equipment secured / restrained in parked or stowed position"
+    category: BC_ENGINEERING
+    applies_to: CROSS_CUTTING
   - id: BAR_MOC
     label: "Management of change applied"
     category: BC_PROCEDURAL
@@ -289,6 +297,9 @@ hazards:
     label: "Radiation"
   - id: HAZ_BIOLOGICAL
     label: "Biological"
+  - id: HAZ_ERGONOMIC
+    label: "Ergonomic / over-exertion"
+    note: "Manual handling, awkward posture, repetitive strain. Not an external energy source — recorded here so musculoskeletal events are not silently dropped."
   - id: HAZ_SOUND
     label: "Sound / vibration"
 
@@ -338,6 +349,8 @@ activities:
     label: "Pressure testing"
   - id: ACT_HC_TRANSFER
     label: "Hydrocarbon transfer / loading / unloading"
+  - id: ACT_PLANT_OPERATION
+    label: "Plant or mobile equipment operation"
   - id: ACT_INSPECTION
     label: "Inspection / survey"
   - id: ACT_HOUSEKEEPING
@@ -374,6 +387,8 @@ exposures:
 consequences:
   - id: CON_FATAL_FALL
     label: "Fatal fall"
+  - id: CON_FALL_SAME_LEVEL
+    label: "Slip, trip, or fall at or near ground level"
   - id: CON_STRUCK_BY
     label: "Struck by object or equipment"
   - id: CON_CAUGHT_BETWEEN
