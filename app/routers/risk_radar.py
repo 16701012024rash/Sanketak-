@@ -1,0 +1,42 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.core.db import SessionLocal
+from app.models.report import Report
+
+router = APIRouter(prefix="/risk-radar", tags=["risk-radar"])
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@router.get("/")
+def risk_radar(threshold: float = 0.6, limit: int = 10, db: Session = Depends(get_db)):
+    high_risk = (
+        db.query(Report)
+        .filter(Report.risk_score >= threshold)
+        .order_by(Report.risk_score.desc())
+        .limit(limit)
+        .all()
+    )
+    total = db.query(Report).count()
+    high_risk_count = db.query(Report).filter(Report.risk_score >= threshold).count()
+
+    return {
+        "total_reports": total,
+        "high_risk_count": high_risk_count,
+        "threshold": threshold,
+        "trend": "up" if total and high_risk_count / total > 0.3 else "stable",
+        "reports": [
+            {
+                "id": r.id,
+                "risk_score": r.risk_score,
+                "barrier_category": r.barrier_category,
+                "site_tag": r.site_tag,
+                "submitted_at": r.submitted_at,
+            }
+            for r in high_risk
+        ],
+    }

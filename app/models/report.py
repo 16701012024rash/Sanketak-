@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, func
+from sqlalchemy import Column, String, Text, DateTime, Float, func
 from app.core.db import Base
 import uuid
 
@@ -10,3 +10,9 @@ class Report(Base):
     language = Column(String)
     status = Column(String, default="pending")
     submitted_at = Column(DateTime, server_default=func.now())
+
+    # Placeholder analysis fields (Phase 3 stub — real values come from AI team in Phase 4)
+    risk_score = Column(Float, nullable=True)
+    barrier_category = Column(String, nullable=True)
+    equipment_tag = Column(String, nullable=True)
+    site_tag = Column(String, nullable=True)
