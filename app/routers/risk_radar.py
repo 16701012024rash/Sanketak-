@@ -13,7 +13,12 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/")
+@router.get(
+    "/",
+    summary="Get aggregate high-risk report overview (HSE staff only)",
+    description="Returns a summary of high-risk reports above a given risk threshold, "
+                "along with a basic trend indicator. Requires a valid HSE staff login token.",
+)
 def risk_radar(threshold: float = 0.6, limit: int = 10, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     high_risk = (
         db.query(Report)

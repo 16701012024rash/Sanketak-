@@ -14,7 +14,13 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/")
+@router.get(
+    "/",
+    summary="Get repeating equipment/site patterns (HSE staff only)",
+    description="Surfaces equipment and site tags that appear across multiple reports, "
+                "highlighting repeating safety issues at specific locations or with specific "
+                "equipment. Requires a valid HSE staff login token.",
+)
 def get_patterns(min_count: int = 2, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     equipment_clusters = (
         db.query(Report.equipment_tag, func.count(Report.id).label("count"))

@@ -15,7 +15,13 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/")
+@router.post(
+    "/",
+    summary="Submit an anonymous safety report",
+    description="Workers submit a safety incident report in any language, with no login required. "
+                "Returns an anonymous token used to check status later. No personal identifying "
+                "information is stored.",
+)
 def create_report(raw_text: str, language: str, db: Session = Depends(get_db)):
     analysis = analyse_report(raw_text)
     report = Report(
@@ -29,7 +35,12 @@ def create_report(raw_text: str, language: str, db: Session = Depends(get_db)):
     db.refresh(report)
     return {"anon_token": report.anon_token, "status": report.status}
 
-@router.get("/worker/{token}")
+@router.get(
+    "/worker/{token}",
+    summary="Check report status (anonymous, no login)",
+    description="Lets a worker check the status of their submitted report using only their "
+                "anonymous token, in their own language. No login or personal data required.",
+)
 def check_status(token: str, db: Session = Depends(get_db)):
     report = db.query(Report).filter(Report.anon_token == token).first()
     if not report:
@@ -40,12 +51,22 @@ def check_status(token: str, db: Session = Depends(get_db)):
         "submitted_at": report.submitted_at
     }
 
-@router.get("/")
+@router.get(
+    "/",
+    summary="List all reports (HSE staff only)",
+    description="Returns all submitted reports with full analysis details. Requires a valid "
+                "HSE staff login token.",
+)
 def list_reports(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     reports = db.query(Report).all()
     return reports
 
-@router.get("/{report_id}")
+@router.get(
+    "/{report_id}",
+    summary="Get a single report's full details (HSE staff only)",
+    description="Returns full details of one report, including risk analysis fields. "
+                "Requires a valid HSE staff login token.",
+)
 def get_report(report_id: str, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:

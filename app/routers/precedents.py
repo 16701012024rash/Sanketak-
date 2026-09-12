@@ -20,7 +20,13 @@ def mock_embedding(text: str):
     random.seed(seed)
     return [random.uniform(-1, 1) for _ in range(8)]
 
-@router.get("/{report_id}")
+@router.get(
+    "/{report_id}",
+    summary="Find matching historical disaster precedents (HSE staff only)",
+    description="Uses vector similarity search (pgvector) to match a report against a database "
+                "of historical industrial disasters (e.g. Piper Alpha, Bhopal), surfacing "
+                "relevant precedents for the given incident. Requires a valid HSE staff login token.",
+)
 def get_precedents(report_id: str, limit: int = 3, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:

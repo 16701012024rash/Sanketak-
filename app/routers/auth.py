@@ -14,7 +14,12 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/register")
+@router.post(
+    "/register",
+    summary="Register a new HSE staff account",
+    description="Creates a new HSE staff login with a hashed password and assigned role "
+                "(viewer, editor, or admin). Intended for internal use by OIL's HSE team.",
+)
 def register(email: str, password: str, role: str = "viewer", db: Session = Depends(get_db)):
     existing = db.query(HSEUser).filter(HSEUser.email == email).first()
     if existing:
@@ -25,7 +30,12 @@ def register(email: str, password: str, role: str = "viewer", db: Session = Depe
     db.refresh(user)
     return {"id": user.id, "email": user.email, "role": user.role}
 
-@router.post("/login")
+@router.post(
+    "/login",
+    summary="Log in as HSE staff",
+    description="Authenticates an HSE staff account and returns a JWT access token, required "
+                "to access all HSE-facing endpoints (reports, risk-radar, patterns, precedents, actions).",
+)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(HSEUser).filter(HSEUser.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
