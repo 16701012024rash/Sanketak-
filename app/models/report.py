@@ -11,8 +11,12 @@ class Report(Base):
     status = Column(String, default="pending")
     submitted_at = Column(DateTime, server_default=func.now())
 
-    # Placeholder analysis fields (Phase 3 stub — real values come from AI team in Phase 4)
+    # Placeholder/demo analysis fields (used by risk-radar, patterns for demo purposes)
     risk_score = Column(Float, nullable=True)
     barrier_category = Column(String, nullable=True)
     equipment_tag = Column(String, nullable=True)
     site_tag = Column(String, nullable=True)
+
+    # Real AI/ML teammate's model output contract
+    sif_probability = Column(Float, nullable=True)
+    risk_level = Column(String, nullable=True)  # "HIGH" / "MEDIUM" / "LOW"
