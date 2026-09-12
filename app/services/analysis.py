@@ -1,35 +1,96 @@
 import random
+import re
+import joblib
+import os
 
-# --- Fields used for demo/UI purposes (risk-radar, patterns) ---
+# --- Load the real SIF classifier model once, at startup ---
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "ml_models", "sif_classifier.joblib")
+model = joblib.load(MODEL_PATH)
+
+# --- Fields still used for demo/UI purposes (risk-radar, patterns) ---
 EQUIPMENT_TAGS = ["pump", "scaffold", "crane", "pipeline", "electrical"]
 BARRIER_CATEGORIES = ["PPE non-compliance", "procedure violation", "equipment failure", "near miss"]
 
-def analyse_report(raw_text: str) -> dict:
+
+def predict_sif(text: str) -> dict:
     """
-    Runs analysis on report text and returns a result matching
-    the AI/ML team's real contract: sif_probability + risk_level.
-
-    Currently mocked. Swap the internals of this function for a real
-    call to the AI/ML team's model once their pipeline is delivered —
-    every caller of this function (routes, create_report) stays unchanged.
+    Real SIF prediction using Member 2's trained model + rule-based adjustments.
     """
-    seed = sum(ord(c) for c in raw_text) if raw_text else 0
-    random.seed(seed)
+    probability = model.predict_proba([text])[0][1]
 
-    sif_probability = round(random.uniform(0.05, 0.95), 2)
+    lower = text.lower()
 
-    if sif_probability >= 0.7:
+    no_exposure = bool(re.search(
+        r"\b(no employees?|no workers?|no personnel|"
+        r"no one was|no one injured|unoccupied|"
+        r"no person|no people|not working in (the )?area)\b",
+        lower
+    ))
+
+    minor_event = bool(re.search(
+        r"\b(minor cut|minor scratch|minor bruise|"
+        r"first aid only|no injury|no injuries)\b",
+        lower
+    ))
+
+    severe_event = bool(re.search(
+        r"\b(trapped|entrapped|pinned|crushed|"
+        r"buried|engulfed|electrocuted|"
+        r"fatal|killed|died|amputation|"
+        r"roof collapse|roof fall|rollover|"
+        r"overturned|explosion|inundation|drowning)\b",
+        lower
+    ))
+
+    if no_exposure and not severe_event:
+        probability = min(probability, 0.25)
+    elif minor_event and not severe_event:
+        probability = min(probability, 0.25)
+    elif severe_event:
+        probability = max(probability, 0.75)
+
+    if probability >= 0.75:
         risk_level = "HIGH"
-    elif sif_probability >= 0.4:
+    elif probability >= 0.40:
         risk_level = "MEDIUM"
     else:
         risk_level = "LOW"
 
+    reasons = []
+    if severe_event:
+        reasons.append("Severe/high-consequence mechanism detected")
+    if no_exposure:
+        reasons.append("No worker exposure indicated")
+    if minor_event:
+        reasons.append("Minor event indicators detected")
+    if not reasons:
+        reasons.append("Risk estimated from incident patterns")
+
     return {
-        "sif_probability": sif_probability,
+        "sif_probability": round(float(probability), 4),
         "risk_level": risk_level,
+        "reason": reasons,
+    }
+
+
+def analyse_report(raw_text: str) -> dict:
+    """
+    Runs full analysis on report text: real SIF prediction (Member 2's model)
+    plus demo/UI fields (equipment_tag, barrier_category, site_tag) used by
+    risk-radar and patterns endpoints.
+    """
+    sif_result = predict_sif(raw_text)
+
+    # Demo/UI fields — still mock, deterministic based on text hash
+    seed = sum(ord(c) for c in raw_text) if raw_text else 0
+    random.seed(seed)
+
+    return {
+        "sif_probability": sif_result["sif_probability"],
+        "risk_level": sif_result["risk_level"],
+        "reason": sif_result["reason"],
         # kept for existing demo endpoints (risk-radar, patterns)
-        "risk_score": sif_probability,
+        "risk_score": sif_result["sif_probability"],
         "barrier_category": random.choice(BARRIER_CATEGORIES),
         "equipment_tag": random.choice(EQUIPMENT_TAGS),
         "site_tag": f"site-{seed % 5 + 1}",

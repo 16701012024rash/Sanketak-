@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Text, DateTime, Float, func
+from sqlalchemy.dialects.postgresql import JSON
 from app.core.db import Base
 import uuid
 
@@ -20,3 +21,4 @@ class Report(Base):
     # Real AI/ML teammate's model output contract
     sif_probability = Column(Float, nullable=True)
     risk_level = Column(String, nullable=True)  # "HIGH" / "MEDIUM" / "LOW"
+    reason = Column(JSON, nullable=True)  # list of explainability strings from the model
