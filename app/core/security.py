@@ -3,8 +3,9 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+import os
 
-SECRET_KEY = "CHANGE_THIS_TO_A_RANDOM_SECRET_BEFORE_DEMO"
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-insecure-fallback-do-not-use-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 120
 

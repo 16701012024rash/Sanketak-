@@ -19,6 +19,7 @@ services:
       - db
     environment:
       DATABASE_URL: postgresql://sanketak:sanketak@db:5432/sanketak
+      SECRET_KEY: 54627fc23d9d0fa2a4cac64905f44c58551fc0f97dd189fc4da350210acd201c
     volumes:
       - ./app:/app/app
 
