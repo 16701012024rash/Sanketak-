@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+import os
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -9,6 +10,13 @@ from app.models import report, precedent, action, hse_user
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Override sqlalchemy.url with the DATABASE_URL environment variable if set
+# (used by Docker), falling back to localhost for manual/local runs.
+database_url = os.getenv(
+    "DATABASE_URL", "postgresql://sanketak:sanketak@localhost:5432/sanketak"
+)
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
