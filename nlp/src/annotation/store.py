@@ -22,7 +22,7 @@ from pydantic import ValidationError
 
 from loader import Taxonomy, get_taxonomy
 
-from .models import Fingerprint
+from .models import ExtractionStatus, Fingerprint
 
 
 class AnnotationError(Exception):
@@ -79,6 +79,48 @@ def append_annotation(path: Path, fingerprint: Fingerprint) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as fh:
         fh.write(fingerprint.model_dump_json(exclude_none=True) + "\n")
+
+
+# --------------------------------------------------------------------------
+# fitness for downstream use
+# --------------------------------------------------------------------------
+
+def is_usable(fingerprint: Fingerprint) -> bool:
+    """Whether this record may be consumed by anything downstream.
+
+    A FAILED extraction is a record of an *absence* — the provider was down, the
+    quota ran out, the response would not parse. It carries the report_id and
+    nothing else, and it is stored precisely so the gap stays visible.
+
+    The danger is that it is shaped exactly like a real fingerprint: same
+    fields, all null. Pattern mining that ingests it sees a report with no
+    barrier failures and no hazard, which is indistinguishable from a genuinely
+    uneventful report. An outage therefore looks like a quiet week.
+
+    So the boundary is made explicit here and imported by consumers, rather than
+    each of them remembering to write `!= "failed"` — the implicit version is
+    the one that gets forgotten at the seam that matters.
+    """
+    return fingerprint.extraction_status is not ExtractionStatus.FAILED
+
+
+def partition_usable(
+    fingerprints: Iterable[Fingerprint],
+) -> tuple[List[Fingerprint], List[Fingerprint]]:
+    """Split records into (usable, failed).
+
+    Returns both halves rather than silently dropping one. A caller that does
+    not look at the second list is making the same mistake as a caller that
+    never filtered — the difference is that this one had to ignore it on
+    purpose.
+    """
+    usable: List[Fingerprint] = []
+    failed: List[Fingerprint] = []
+
+    for fingerprint in fingerprints:
+        (usable if is_usable(fingerprint) else failed).append(fingerprint)
+
+    return usable, failed
 
 
 # --------------------------------------------------------------------------

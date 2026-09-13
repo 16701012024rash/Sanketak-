@@ -23,7 +23,15 @@ from typing import List, Optional, Set
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from annotation import Fingerprint, read_annotations   # noqa: E402
+from annotation import (                              # noqa: E402
+    Fingerprint,
+    partition_usable,
+    read_annotations,
+)
+
+# Above this share of failed extractions, the run is reporting on an outage
+# rather than on a model, and the per-field numbers are meaningless.
+MAX_FAILED_FRACTION = 0.20
 
 
 def _single(gold: List[Fingerprint], pred: dict, field: str) -> dict:
@@ -106,10 +114,47 @@ def main() -> None:
     ap.add_argument("--reports", default="data/reports.csv")
     ap.add_argument("--errors", action="store_true",
                     help="print every disagreement")
+    ap.add_argument("--force", action="store_true",
+                    help="score even when too many extractions failed; the "
+                         "numbers will not mean what they appear to mean")
     args = ap.parse_args()
 
     gold = read_annotations(args.gold)
-    pred = {p.report_id: p for p in read_annotations(args.pred)}
+    all_pred = read_annotations(args.pred)
+
+    # A failed extraction is an absence, not a prediction of null. Scoring it
+    # as though the model declined to answer turns a provider outage into
+    # "the model is mediocre" — a 100% failed run scored 40% on activity,
+    # which is a plausible enough number that nobody would question it.
+    usable, failed = partition_usable(all_pred)
+    failed_fraction = len(failed) / len(all_pred) if all_pred else 0.0
+
+    print(f"predictions: {len(all_pred)}   usable: {len(usable)}   "
+          f"failed: {len(failed)} ({failed_fraction:.0%})")
+
+    if failed:
+        reasons = {}
+        for f in failed:
+            note = (f.notes or "no reason recorded").split(":")[-1].strip()
+            reasons[note[:60]] = reasons.get(note[:60], 0) + 1
+        print("failure reasons:")
+        for reason, count in sorted(reasons.items(), key=lambda x: -x[1])[:5]:
+            print(f"  {count:>4}x {reason}")
+
+    if failed_fraction > MAX_FAILED_FRACTION and not args.force:
+        print(f"\nREFUSING TO SCORE.")
+        print(f"{failed_fraction:.0%} of extractions failed, over the "
+              f"{MAX_FAILED_FRACTION:.0%} threshold. These numbers would "
+              f"describe an outage,\nnot the model. Fix the extraction run and "
+              f"score again — or pass --force if you\nreally want the figures "
+              f"and will quote them with this caveat attached.")
+        sys.exit(1)
+
+    if failed:
+        print(f"\nexcluding {len(failed)} failed extraction(s) from all "
+              f"figures below.")
+
+    pred = {p.report_id: p for p in usable}
     gold = [g for g in gold if g.report_id in pred]
 
     # stdlib csv, not pandas: the evaluator is the one thing that has to run

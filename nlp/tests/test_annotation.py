@@ -14,6 +14,8 @@ import pytest
 from pydantic import ValidationError
 
 from annotation import (
+    is_usable,
+    partition_usable,
     AnnotationError,
     BarrierFailure,
     ExtractionStatus,
@@ -260,3 +262,46 @@ def test_gloss_is_not_validated_against_the_narrative():
                        evidence_span_en="ohne Isolationsprüfung"),
     ])
     assert validate_against_taxonomy(fp, narrative=NARRATIVE) == []
+
+
+# --------------------------------------------------------------------------
+# fitness for downstream use
+# --------------------------------------------------------------------------
+
+def test_failed_extraction_is_not_usable():
+    """The distinction the rest of the system depends on.
+
+    A FAILED record looks exactly like a real fingerprint with nothing in it,
+    so anything consuming fingerprints must be able to tell the two apart
+    without inspecting `notes` by hand.
+    """
+    failed = Fingerprint(report_id="R1", extraction_status=ExtractionStatus.FAILED)
+    assert not is_usable(failed)
+
+
+def test_partial_and_complete_are_usable():
+    """PARTIAL is a real answer — the report genuinely did not say everything.
+
+    Only FAILED means "we never got an answer at all". Treating PARTIAL as
+    unusable would throw away most of a normal run.
+    """
+    for status in (ExtractionStatus.PARTIAL, ExtractionStatus.COMPLETE):
+        assert is_usable(Fingerprint(report_id="R1", extraction_status=status))
+
+
+def test_partition_returns_both_halves():
+    """Both halves come back so a caller cannot drop failures by accident —
+    ignoring them has to be a decision, not an oversight."""
+    records = [
+        Fingerprint(report_id="OK1", extraction_status=ExtractionStatus.COMPLETE),
+        Fingerprint(report_id="BAD", extraction_status=ExtractionStatus.FAILED),
+        Fingerprint(report_id="OK2", extraction_status=ExtractionStatus.PARTIAL),
+    ]
+    usable, failed = partition_usable(records)
+    assert [f.report_id for f in usable] == ["OK1", "OK2"]
+    assert [f.report_id for f in failed] == ["BAD"]
+
+
+def test_partition_of_an_empty_run():
+    usable, failed = partition_usable([])
+    assert usable == [] and failed == []
