@@ -94,23 +94,33 @@ A structured SIF Fingerprint allows the system to represent both reports using t
 
 ```json
 {
+  "report_id": "OSHA_2016065817",
+  "language": "en",
+  "extraction_status": "complete",
   "activity": "ACT_MECH_MAINTENANCE",
   "hazard": "HAZ_MECHANICAL",
   "exposure": "EXP_DIRECT_CONTACT",
+  "potential_consequence": "CON_CAUGHT_BETWEEN",
+  "life_saving_rules": ["LSR_ENERGY"],
+  "context_flags": [],
   "barrier_failures": [
     {
       "barrier": "BAR_ISOLATION_VERIFIED",
       "failure_mode": "FM_NOT_COMPLIED",
       "primary": true,
-      "evidence_span": "without confirming isolation"
+      "evidence_span": "without confirming isolation",
+      "evidence_span_en": null
     }
   ],
-  "potential_consequence": "CON_CAUGHT_BETWEEN",
-  "life_saving_rules": [
-    "LSR_ENERGY"
-  ]
+  "location_raw": null,
+  "location_l1": null,
+  "annotator": "model"
 }
 ```
+
+`evidence_span_en` is null here because the report is already in English. On a
+Hindi or code-mixed report, `evidence_span` stays in the reporter's own script
+and `evidence_span_en` carries the English rendering — see section 15.2.
 
 The important part is that the system is **not simply guessing labels**.
 
@@ -158,7 +168,8 @@ Instead:
 
 ```json
 {
-  "location": null
+  "location_raw": null,
+  "location_l1": null
 }
 ```
 
@@ -461,9 +472,18 @@ If resolution fails:
 ```json
 {
   "location_raw": "near the old pump",
-  "location": null
+  "location_l1": null,
+  "location_l2": null,
+  "location_l3": null,
+  "location_l4": null
 }
 ```
+
+There is no single `location` field. The resolved location is the four level
+fields described in section 7, and they must be filled top-down — setting
+`location_l3` while `location_l2` is null is rejected by the record validator,
+because a known installation under an unknown field is incoherent rather than
+more precise.
 
 The original text is still available for a human reviewer to resolve later.
 
@@ -751,36 +771,51 @@ The system should not be considered successful because a few examples "look righ
 
 We need a labelled **gold dataset** and measurable performance for each important field.
 
-For example:
+This is implemented. `scripts/evaluate.py` scores each field separately:
 
 ```text
 Activity accuracy
 Hazard accuracy
 Exposure accuracy
-Barrier accuracy
-Failure-mode accuracy
-LSR accuracy
-Evidence-span accuracy
-Location resolution accuracy
+Potential-consequence accuracy
+Barrier accuracy            (id only, and paired with failure mode)
+LSR precision / recall / F1
+Evidence-span verbatim rate
+Location resolution accuracy    — not yet; resolution is not built
 ```
 
-This lets us identify exactly where the model is strong and where it needs improvement.
+Per-field is the point: the module is decent at potential consequence and poor
+at exposure, and a single blended number would hide that.
+
+**Current scores, and the sample size they rest on, are in section 17.** They
+should always be quoted together — at the gold set's present size the intervals
+are wide enough that the numbers mislead on their own.
 
 ---
 
 ## 16. Project structure
 
 ```text
-sih_proj/
+nlp/
 │
 ├── taxonomy/
 │   ├── taxonomy.yaml
 │   └── locations.yaml
 │
 ├── src/
+│   ├── loader/           taxonomy loading + validation
+│   ├── annotation/       the Fingerprint record, and its storage
+│   └── extraction/       language detection, LLM seam, extractor
 │
-├── data/
-│   └── raw/              # gitignored
+├── scripts/
+│   ├── run_extraction.py     narratives  -> predictions.jsonl
+│   ├── evaluate.py           predictions -> per-field scores
+│   └── demo_multilingual.py  multilingual walkthrough
+│
+├── data/                 # gitignored, except the gold set
+│   ├── reports.csv           39,316 unlabelled narratives
+│   ├── predictions.jsonl     model output
+│   └── gold/                 hand-labelled, committed
 │
 ├── tests/
 │
@@ -795,40 +830,126 @@ Contains the controlled vocabularies and location registry.
 
 **`src/`**
 
-Implementation code. Subpackages are added as each component is built:
+Implementation code:
 
 ```text
 loader/       loads and validates the taxonomy before anything else uses it
-tagger/       identifies the relevant Life-Saving Rule
-extractor/    extracts the SIF Fingerprint fields from the report
-explainer/    connects extracted fields back to evidence in the original report
+annotation/   the Fingerprint record, its validators, and jsonl read/write
+extraction/   language detection, the LLM backend seam, and the extractor
 ```
+
+An earlier plan had a separate `tagger/` for Life-Saving Rules and an
+`explainer/` for evidence. Neither exists as its own package. The LSR tagger is
+folded into the extractor, because the rule follows from the barrier and the
+hazard and a second pass over the same narrative would only find new ways to
+disagree with the first. Evidence is likewise produced by the extractor and
+verified in `_coerce` at the same moment the ids are checked — the span and the
+label it supports are validated together or not at all.
 
 **`data/`**
 
 Datasets used for development and evaluation.
 
-Raw and generated data is gitignored. Generation *scripts* are committed; their
-output is not.
+Raw and generated data is gitignored; the *scripts* that produce it are
+committed. The one exception is `data/gold/` — the hand-labelled gold set is
+force-added to the repo, because it is slow human work rather than regenerable
+output, and losing it would cost more than the whole pipeline.
 
 **`tests/`**
 
-Taxonomy validation and model evaluation.
+Taxonomy validation, record validation, and language detection. Run them with:
+
+```text
+PYTHONPATH=src python3 -m pytest tests -q
+```
+
+Model quality is *not* tested here — it is measured by `scripts/evaluate.py`
+against the gold set, because a score that moves with the model does not belong
+in a pass/fail suite.
 
 ---
 
 ## 17. Current status
 
-| Component              | Status      |
-| ---------------------- | ----------- |
-| Taxonomy v0.1          | Done        |
-| Location registry v0.1 | Provisional |
-| Location levels        | Defined     |
-| Loader + validation    | Next        |
-| LSR tagger             | Not started |
-| Fingerprint extractor  | Not started |
-| Evidence spans         | Not started |
-| Multilingual NLP       | Not started |
+| Component              | Status                                      |
+| ---------------------- | ------------------------------------------- |
+| Taxonomy v0.1          | Done                                        |
+| Location registry v0.1 | Provisional                                 |
+| Location levels        | Defined                                     |
+| Loader + validation    | Done                                        |
+| Fingerprint extractor  | Done — quality measured below               |
+| Evidence spans         | Done — 100% verbatim                        |
+| Multilingual NLP       | Done — script + romanised detection         |
+| LSR tagger             | Folded into the extractor, not separate     |
+| Location resolution    | Not started                                 |
+| Gold set at usable size| **Not done — the main gap**                 |
+
+### Measured quality
+
+Section 15.6 says we should not call this working because a few examples look
+right. So here is what it actually scores, run with:
+
+```text
+PYTHONPATH=src python3 scripts/evaluate.py
+```
+
+**Scored on n=25 reports.** Read the next subsection before quoting any of it.
+
+#### Single-value fields
+
+| Field                   | Accuracy | 95% CI     | Invented | Missed |
+| ----------------------- | -------- | ---------- | -------- | ------ |
+| `potential_consequence` | 76%      | [57%, 89%] | 0        | 0      |
+| `hazard`                | 60%      | [41%, 77%] | 1        | 0      |
+| `activity`              | 56%      | [37%, 73%] | 3        | 1      |
+| `exposure`              | 32%      | [17%, 52%] | 5        | 0      |
+
+#### Multi-value fields
+
+| Field               | Precision | Recall | F1  | Exact set |
+| ------------------- | --------- | ------ | --- | --------- |
+| `life_saving_rules` | 53%       | 40%    | 46% | 40%       |
+| Barrier (id only)   | 44%       | 32%    | 37% | 40%       |
+| Barrier + mode      | 31%       | 23%    | 26% | 32%       |
+
+#### Evidence spans
+
+16/16 barrier failures carry a span; **100% verbatim** in the narrative. This
+is the one guarantee the module currently keeps outright, and it is structural
+rather than learned — `_coerce` drops any span it cannot find in the source, so
+a fabricated quote cannot reach a dashboard.
+
+### What these numbers do and do not mean
+
+**The gold set is 25 scored reports. That is too small to draw conclusions
+from, and it is the honest headline here.**
+
+At n=25 every accuracy above carries a 95% confidence interval of roughly
+±17 percentage points. Concretely: `hazard` at 60% and `activity` at 56% are
+not distinguishable from each other, and neither is distinguishable from a
+model that is 10 points better or worse. Prompt changes cannot currently be
+evaluated — three rounds of prompt iteration on the failure-mode distribution
+were attempted and abandoned for exactly this reason, since improvement and
+noise are the same size at this sample size.
+
+What can still be said, because it does not depend on the sample size:
+
+* Evidence verbatim-ness is enforced in code, not measured statistically.
+* Invalid taxonomy ids cannot reach the output, for the same reason.
+* `exposure` is weak enough (32%, and 5 invented values against 0 missed) that
+  the direction of the error is clear even if the magnitude is not: the model
+  guesses exposure when the narrative does not state it.
+
+**Known skew, not yet fixed:** failure modes come back `FM_ABSENT` 9 /
+`FM_INEFFECTIVE` 4 / `FM_NOT_COMPLIED` 3 across 25 reports, despite the prompt
+warning against defaulting. This is most of the gap between barrier-only F1
+(37%) and barrier+mode F1 (26%). It is deliberately not being fixed until the
+gold set is larger, because a fix cannot be verified at n=25.
+
+### The next thing to do
+
+Expand the gold set — see section 18. Until it is larger, every number in this
+section should be quoted with its sample size attached.
 
 ### Location registry status
 
@@ -846,40 +967,72 @@ is the expected state.
 
 ---
 
-## 18. Next step: Loader + validation
+## 18. Next step: expand the gold set
 
-The next implementation task is the **taxonomy loader and validator**.
+The loader and validator described in earlier drafts of this section are built.
+They catch duplicate ids, missing required fields, invalid LSR / barrier /
+failure-mode references, missing `applies_to`, unexpected vocabulary values and
+malformed YAML, and they refuse to hand a broken taxonomy to anything
+downstream. The taxonomy is a reliable contract now, which is what that work was
+for.
 
-Its job is simple:
+The next task is not more pipeline. **It is labelling data.**
+
+Section 17 explains why: the pipeline produces scores, but the gold set is 25
+scored reports, and at that size a 95% confidence interval is about ±17
+percentage points. That single fact blocks nearly everything else worth doing:
+
+* The failure-mode skew (`FM_ABSENT` 9 / `FM_INEFFECTIVE` 4 /
+  `FM_NOT_COMPLIED` 3) is visible but not fixable, because a prompt change that
+  helps and a prompt change that does nothing produce the same measurement.
+* `exposure` at 32% cannot be diagnosed. We can see the model over-guesses — 5
+  invented values against 0 missed — but not whether the cause is the prompt,
+  the taxonomy's exposure categories, or the narratives genuinely not stating
+  it.
+* No claim about accuracy can be made to OIL with a straight face.
+
+### What the work is
 
 ```text
-taxonomy.yaml
+data/reports.csv                39,316 unlabelled narratives
+      ↓  sample, stratified across hazard type and severity
+data/gold/gold_seed.jsonl       narratives with blank fingerprints below them
+      ↓  hand-label, following sections 12-15
+data/gold/gold.jsonl            30 labelled today; ~150 is the target
       ↓
-   load file
-      ↓
-   validate structure
-      ↓
-   validate IDs
-      ↓
-   validate references
-      ↓
-   reject invalid taxonomy
-      ↓
-   make valid taxonomy available to the application
+scripts/evaluate.py             intervals narrow enough to act on
 ```
 
-For example, the validator should catch things like:
+Roughly 150 labelled reports brings the intervals to a width where a prompt
+change can be told apart from noise. To be clear about where that figure comes
+from: it is estimated from the interval width at the sample sizes involved, not
+from a formal power calculation. At n=150 a 95% interval on a mid-range
+accuracy is roughly ±8 percentage points, against ±17 today — enough to see a
+real improvement, not enough to certify a small one. If it turns out 120 is
+sufficient or 200 is needed, that is a revision to expect, not a failure of the
+plan. What matters is the threshold, not the number: the point where iteration
+becomes possible at all.
 
-* duplicate IDs
-* missing required fields
-* invalid LSR references
-* invalid barrier references
-* invalid failure-mode references
-* missing `applies_to`
-* unexpected vocabulary values
-* malformed YAML
+### Rules for labelling
 
-The goal is to make the taxonomy a reliable contract before the NLP components are built on top of it.
+* Label from the narrative alone. Do not look at the model's prediction first;
+  it anchors, and a gold set that agrees with the model by construction
+  measures nothing.
+* Never train on `gold.jsonl`, and never tune the prompt against it example by
+  example. It is the only honest measurement in the module.
+* When the narrative genuinely does not say, the answer is `null`. A gold set
+  that guesses teaches the evaluator to reward guessing.
+* Record hard calls in `notes`. Two labellers disagreeing on a report is
+  information about the taxonomy, not a mistake to be tidied away.
+
+### After that
+
+In rough order, once the numbers can be trusted:
+
+1. Fix the failure-mode skew, and verify the fix.
+2. Diagnose `exposure`.
+3. Build location resolution, which is still not started and which section 11
+   explains will be weaker than the core extraction.
 
 ---
 

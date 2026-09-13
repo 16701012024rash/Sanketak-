@@ -25,13 +25,19 @@ _LATIN = re.compile(r"[A-Za-z]")
 
 # Romanised Hindi that a field worker would actually type. Function words and
 # safety vocabulary, not nouns — nouns get borrowed into English anyway.
+#
+# Every marker here must be a word that is NOT also ordinary English. An
+# earlier version included "the" (Hindi "were"), "par", "band", "check", "ke",
+# "ka" and "ki"; "the" alone pushed 28% of plain English OSHA narratives into
+# MIXED. A marker that collides with English is worse than a missing marker,
+# because it misroutes reports that were never code-mixed at all.
 _HINGLISH_MARKERS = {
-    "nahi", "nahin", "tha", "thi", "the", "hai", "hain", "kiya", "kiye", "kar",
+    "nahi", "nahin", "tha", "thi", "hai", "hain", "kiya", "kiye", "kar",
     "karke", "karta", "karte", "hua", "hui", "gaya", "gayi", "raha", "rahi",
     "bina", "wala", "wale", "liye", "diya", "dena", "lekin", "phir", "abhi",
-    "par", "mein", "ke", "ki", "ka", "se", "ko", "aur", "koi", "kuch", "sab",
-    "band", "chalu", "kaam", "mistri", "aadmi", "haath", "upar", "niche",
-    "andar", "bahar", "girna", "gir", "laga", "lagi", "check", "theek",
+    "mein", "se", "ko", "aur", "koi", "kuch", "sab",
+    "chalu", "kaam", "mistri", "aadmi", "haath", "upar", "niche",
+    "andar", "bahar", "girna", "gir", "laga", "lagi", "theek",
 }
 
 
@@ -67,8 +73,12 @@ def detect_language(text: str) -> Tuple[Language, float]:
     if words:
         hits = sum(1 for w in words if w in _HINGLISH_MARKERS)
         ratio = hits / len(words)
-        # Two markers is not a sentence in Hinglish; a tenth of the words is.
-        if hits >= 2 and ratio >= 0.10:
+        # Genuinely code-mixed text is dense in these markers, because they are
+        # the function words holding the sentence together — a Hinglish report
+        # runs well above a fifth. A long English narrative that happens to
+        # contain a couple of borrowed nouns does not, so require both a real
+        # count and a real proportion.
+        if hits >= 3 and ratio >= 0.20:
             return Language.MIXED, min(0.5 + ratio, 0.95)
 
     return Language.EN, latin / total

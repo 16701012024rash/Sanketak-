@@ -16,6 +16,7 @@ outcome than missing the control entirely.
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
 from pathlib import Path
 from typing import List, Optional, Set
@@ -111,12 +112,15 @@ def main() -> None:
     pred = {p.report_id: p for p in read_annotations(args.pred)}
     gold = [g for g in gold if g.report_id in pred]
 
+    # stdlib csv, not pandas: the evaluator is the one thing that has to run
+    # on a bare clone to produce the numbers we report, and it should not be
+    # blocked by a heavyweight dependency it needs for two columns.
     narratives = {}
     if Path(args.reports).exists():
-        import pandas as pd
-        df = pd.read_csv(args.reports)
-        narratives = {r.REPORT_ID: " ".join(str(r.NARRATIVE).split())
-                      for r in df.itertuples()}
+        with open(args.reports, newline="") as f:
+            for row in csv.DictReader(f):
+                narratives[row["REPORT_ID"]] = " ".join(
+                    str(row["NARRATIVE"]).split())
 
     print(f"scored on {len(gold)} reports\n")
 

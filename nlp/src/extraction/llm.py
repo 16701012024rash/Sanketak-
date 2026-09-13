@@ -61,8 +61,13 @@ class LLMBackend(ABC):
 
     def complete_json_retrying(self, prompt: str, system: Optional[str] = None,
                                attempts: int = 3) -> Dict[str, Any]:
-        """Retry with backoff. Free tiers rate-limit aggressively and a single
-        429 should not lose a whole run."""
+        """Retry transient provider failures with exponential backoff.
+
+        Rate limits are the deliberate exception: a 429 is raised immediately
+        rather than retried, because a quota that has run out will not refill
+        within the backoff window and retrying only spends more of it. The
+        caller sees the failure while it still has budget to react.
+        """
         last: Optional[Exception] = None
         for i in range(attempts):
             try:
