@@ -11,6 +11,44 @@ model = joblib.load(MODEL_PATH)
 EQUIPMENT_TAGS = ["pump", "scaffold", "crane", "pipeline", "electrical"]
 BARRIER_CATEGORIES = ["PPE non-compliance", "procedure violation", "equipment failure", "near miss"]
 
+EQUIPMENT_KEYWORDS = {
+    "scaffold": "scaffold",
+    "guardrail": "scaffold",
+    "pump": "pump",
+    "crane": "crane",
+    "pipeline": "pipeline",
+    "pipe": "pipeline",
+    "valve": "pipeline",
+    "electrical": "electrical",
+    "wire": "electrical",
+    "wiring": "electrical",
+}
+
+BARRIER_KEYWORDS = {
+    "ppe": "PPE non-compliance",
+    "helmet": "PPE non-compliance",
+    "guardrail": "PPE non-compliance",
+    "permit": "procedure violation",
+    "procedure": "procedure violation",
+    "inspection": "procedure violation",
+    "failure": "equipment failure",
+    "malfunction": "equipment failure",
+    "leak": "equipment failure",
+}
+
+
+def detect_tag(text: str, keyword_map: dict, fallback_options: list, seed: int) -> str:
+    """
+    Checks text for known keywords first; falls back to deterministic
+    random choice if no keyword matches.
+    """
+    lower = text.lower()
+    for keyword, tag in keyword_map.items():
+        if keyword in lower:
+            return tag
+    random.seed(seed)
+    return random.choice(fallback_options)
+
 
 def predict_sif(text: str) -> dict:
     """
@@ -77,21 +115,25 @@ def analyse_report(raw_text: str) -> dict:
     """
     Runs full analysis on report text: real SIF prediction (Member 2's model)
     plus demo/UI fields (equipment_tag, barrier_category, site_tag) used by
-    risk-radar and patterns endpoints.
+    risk-radar and patterns endpoints. Equipment/barrier tags now check for
+    actual keywords in the text before falling back to random assignment.
     """
     sif_result = predict_sif(raw_text)
 
-    # Demo/UI fields — still mock, deterministic based on text hash
     seed = sum(ord(c) for c in raw_text) if raw_text else 0
+
+    equipment_tag = detect_tag(raw_text, EQUIPMENT_KEYWORDS, EQUIPMENT_TAGS, seed)
+    barrier_category = detect_tag(raw_text, BARRIER_KEYWORDS, BARRIER_CATEGORIES, seed + 1)
+
     random.seed(seed)
+    site_tag = f"site-{seed % 5 + 1}"
 
     return {
         "sif_probability": sif_result["sif_probability"],
         "risk_level": sif_result["risk_level"],
         "reason": sif_result["reason"],
-        # kept for existing demo endpoints (risk-radar, patterns)
         "risk_score": sif_result["sif_probability"],
-        "barrier_category": random.choice(BARRIER_CATEGORIES),
-        "equipment_tag": random.choice(EQUIPMENT_TAGS),
-        "site_tag": f"site-{seed % 5 + 1}",
+        "barrier_category": barrier_category,
+        "equipment_tag": equipment_tag,
+        "site_tag": site_tag,
     }
