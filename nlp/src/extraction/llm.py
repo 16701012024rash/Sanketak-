@@ -130,11 +130,72 @@ class GroqBackend(LLMBackend):
         return _extract_json(resp.choices[0].message.content)
 
 
+# Confirmed against this account's /v1/models listing rather than guessed — a
+# wrong id does not fail at import, it fails on the first extraction with a
+# 404.
+#
+# Budget tier on purpose. This is schema-constrained extraction: the model
+# picks ids from a taxonomy we hand it and copies evidence spans verbatim. It
+# is a reading and formatting job, not a reasoning one, and the flagship tiers
+# are spend without a matching gain — `_coerce` already discards anything
+# outside the taxonomy, so the expensive failure mode is not "wrong id" but
+# "plausible id the narrative does not support", which a larger model is not
+# obviously better at.
+#
+# Not gpt-5-mini: it rejects temperature=0.0 outright ("Unsupported value:
+# 'temperature' does not support 0.0 with this model"), and determinism at
+# temperature 0 is a property this module relies on.
+#
+# The floating alias is deliberate — it survives snapshot retirement. Pin
+# gpt-5.4-mini-2026-03-17 instead if a run needs to be exactly reproducible.
+_OPENAI_DEFAULT_MODEL: Optional[str] = "gpt-5.4-mini"
+
+
+class OpenAIBackend(LLMBackend):
+    name = "openai"
+
+    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
+        from openai import OpenAI
+        key = api_key or os.getenv("OPENAI_API_KEY")
+        if not key:
+            raise LLMError("OPENAI_API_KEY is not set. Put it in nlp/.env")
+        self.client = OpenAI(api_key=key)
+        self.model_name = model or os.getenv("OPENAI_MODEL") or _OPENAI_DEFAULT_MODEL
+        if not self.model_name:
+            raise LLMError(
+                "No OpenAI model chosen. Set OPENAI_MODEL in nlp/.env, or fill "
+                "in _OPENAI_DEFAULT_MODEL in this file with an id confirmed "
+                "against the account's model listing."
+            )
+
+    def complete_json(self, prompt: str, system: Optional[str] = None) -> Dict[str, Any]:
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        resp = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            temperature=0.0,
+            response_format={"type": "json_object"},
+        )
+        return _extract_json(resp.choices[0].message.content)
+
+
 def get_backend(name: Optional[str] = None) -> LLMBackend:
-    """Pick a backend. Defaults to LLM_PROVIDER in .env, else Gemini."""
-    name = (name or os.getenv("LLM_PROVIDER", "gemini")).lower()
+    """Pick a backend. Defaults to LLM_PROVIDER in .env, else OpenAI.
+
+    OpenAI is the paid default. Groq and Gemini remain as free-tier fallbacks —
+    useful when the credit runs out mid-run, and the reason the provider is a
+    single argument rather than a code change.
+    """
+    name = (name or os.getenv("LLM_PROVIDER", "openai")).lower()
+    if name == "openai":
+        return OpenAIBackend()
     if name == "gemini":
         return GeminiBackend()
     if name == "groq":
         return GroqBackend()
-    raise LLMError(f"Unknown provider {name!r}. Use 'gemini' or 'groq'.")
+    raise LLMError(
+        f"Unknown provider {name!r}. Use 'openai', 'gemini' or 'groq'."
+    )
