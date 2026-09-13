@@ -1,15 +1,33 @@
 from intelligence.precedent.vector_search import vector_search
 
 
+def _matches(new_report, old_report, field):
+    """True only when both reports state the same value for `field`.
+
+    A null means the extractor could not find the value in the narrative, not
+    that the value is absent from the world. Two nulls are therefore two
+    unknowns, and two unknowns are not a match — without this guard a pair of
+    reports that share nothing but our own ignorance scored 55/100 against a
+    threshold of 50, and were shown to a safety officer as precedents.
+    """
+    new_value = new_report.get(field)
+    old_value = old_report.get(field)
+
+    if new_value is None or old_value is None:
+        return False
+
+    return new_value == old_value
+
+
 def calculate_structured_score(new_report, old_report):
     score = 0
 
     # Activity match — 30 points
-    if new_report.get("activity") == old_report.get("activity"):
+    if _matches(new_report, old_report, "activity"):
         score += 30
 
     # Hazard match — 25 points
-    if new_report.get("hazard") == old_report.get("hazard"):
+    if _matches(new_report, old_report, "hazard"):
         score += 25
 
     # Life-Saving Rule match — 15 points
