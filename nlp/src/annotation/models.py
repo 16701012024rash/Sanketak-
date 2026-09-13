@@ -47,6 +47,11 @@ class BarrierFailure(BaseModel):
     failure_mode: str                 # -> FailureMode.id
     primary: bool = False
     evidence_span: Optional[str] = None
+    # For non-English reports: an English rendering of `evidence_span`.
+    # `evidence_span` always stays in the reporter's own words — that is what
+    # makes it verifiable against the source. The gloss is for the HSE officer
+    # reading the dashboard, and is never used for validation.
+    evidence_span_en: Optional[str] = None
     confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 

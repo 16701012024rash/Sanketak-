@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 from annotation import BarrierFailure, ExtractionStatus, Fingerprint, Language
 from loader import Taxonomy, get_taxonomy
 
+from .language import detect_language
 from .llm import LLMBackend, LLMError, get_backend
 
 SYSTEM = """You are a process-safety analyst working with IOGP Life-Saving Rules.
@@ -31,6 +32,17 @@ Two rules matter above all others:
    character-for-character from the narrative. Never paraphrase, never
    summarise, never fix spelling or grammar — some narratives are in capitals
    or contain typos and you must reproduce them exactly.
+
+   Keep the span tight — the few words that show the control failed, not the
+   whole sentence. "without confirming isolation" is evidence; the entire
+   narrative is not. If the span is more than about a dozen words, you have
+   quoted too much.
+
+   This holds in every language. If the report is in Hindi, Assamese, or a
+   mixture of a language and English, evidence_span stays in the reporter's own
+   words and script. Do not translate it. Put your English rendering in
+   evidence_span_en instead, so the officer reading the dashboard understands
+   it while the original remains checkable against the source.
 
 2. POTENTIAL, NOT ACTUAL. potential_consequence is the worst credible outcome
    had the situation continued or gone slightly differently. It is NOT the
@@ -117,7 +129,8 @@ Return JSON with exactly these keys:
   "context_flags": ["<id>", ...],
   "barrier_failures": [
     {{"barrier": "<id>", "failure_mode": "<id>", "primary": true,
-      "evidence_span": "<verbatim quote from the narrative>"}}
+      "evidence_span": "<verbatim quote, in the narrative's own language>",
+      "evidence_span_en": "<English rendering; null if already English>"}}
   ]
 }}
 
@@ -185,7 +198,8 @@ def _recover_span(span: str, narrative: str) -> Optional[str]:
 
 
 def _coerce(raw: Dict[str, Any], report_id: str, narrative: str,
-            tax: Taxonomy) -> tuple[Fingerprint, List[str]]:
+            tax: Taxonomy, language: Language = Language.EN
+            ) -> tuple[Fingerprint, List[str]]:
     """Turn raw model output into a valid Fingerprint, discarding what is wrong.
 
     Returns the fingerprint plus a list of what had to be dropped, so a run can
@@ -226,9 +240,15 @@ def _coerce(raw: Dict[str, Any], report_id: str, narrative: str,
         span = _recover_span(bf.get("evidence_span") or "", narrative)
         if bf.get("evidence_span") and span is None:
             dropped.append(f"evidence_span={bf['evidence_span'][:40]!r}")
+        # A gloss with no verified span behind it explains nothing, so it is
+        # discarded with the span it belonged to.
+        gloss = bf.get("evidence_span_en") if span else None
+        if gloss and gloss.strip() == (span or "").strip():
+            gloss = None      # English report; the gloss is just a duplicate
         failures.append(BarrierFailure(
             barrier=barrier, failure_mode=mode,
             primary=bool(bf.get("primary")), evidence_span=span,
+            evidence_span_en=gloss,
         ))
 
     # Exactly one primary. The model is inconsistent about this; we fix it
@@ -255,7 +275,7 @@ def _coerce(raw: Dict[str, Any], report_id: str, narrative: str,
 
     fp = Fingerprint(
         report_id=report_id,
-        language=Language.EN,
+        language=language,
         extraction_status=status,
         life_saving_rules=multi("life_saving_rules", "life_saving_rules"),
         context_flags=multi("context_flags", "context_flags"),
@@ -278,6 +298,7 @@ class Extractor:
 
     def extract(self, report_id: str, narrative: str) -> Fingerprint:
         narrative = " ".join(str(narrative).split())
+        language, _ = detect_language(narrative)
         try:
             raw = self.backend.complete_json_retrying(
                 build_prompt(narrative, self.tax), system=SYSTEM
@@ -291,5 +312,5 @@ class Extractor:
                 annotator="model", annotated_at=Fingerprint.now(),
                 notes=f"extraction error: {e}",
             )
-        fp, _ = _coerce(raw, report_id, narrative, self.tax)
+        fp, _ = _coerce(raw, report_id, narrative, self.tax, language)
         return fp

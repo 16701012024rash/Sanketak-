@@ -212,3 +212,51 @@ def test_blank_lines_and_comments_are_skipped(tmp_path):
 def test_missing_file_is_a_clear_error(tmp_path):
     with pytest.raises(AnnotationError, match="No annotation file"):
         read_annotations(tmp_path / "nope.jsonl")
+
+
+# --------------------------------------------------------------------------
+# multilingual
+# --------------------------------------------------------------------------
+
+def test_language_detection():
+    from extraction.language import detect_language
+    from annotation import Language
+    cases = [
+        ("Technician repaired pump without confirming isolation.", Language.EN),
+        ("मिस्त्री ने पंप की मरम्मत बिना आइसोलेशन जांचे शुरू कर दी।", Language.HI),
+        ("কৰ্মীয়ে হেলমেট নিপিন্ধাকৈ ওপৰলৈ উঠিছিল", Language.AS),
+        ("Mistri ne pump ka kaam bina isolation check kiye shuru kar diya", Language.MIXED),
+        ("", Language.UNKNOWN),
+    ]
+    for text, expected in cases:
+        assert detect_language(text)[0] == expected, text[:40]
+
+
+def test_gloss_survives_roundtrip(tmp_path):
+    """The English rendering must persist through storage — it is what the HSE
+    officer reads."""
+    from annotation import write_annotations
+    hindi = "बिना आइसोलेशन जांचे"
+    fp = good_fingerprint(barrier_failures=[
+        BarrierFailure(barrier="BAR_ISOLATION_VERIFIED",
+                       failure_mode="FM_NOT_COMPLIED", primary=True,
+                       evidence_span=hindi,
+                       evidence_span_en="without verifying isolation"),
+    ])
+    path = tmp_path / "hi.jsonl"
+    write_annotations(path, [fp])
+    back = read_annotations(path)[0]
+    assert back.barrier_failures[0].evidence_span == hindi
+    assert back.barrier_failures[0].evidence_span_en == "without verifying isolation"
+
+
+def test_gloss_is_not_validated_against_the_narrative():
+    """Only the original-language span must be verbatim. The gloss is a
+    translation and by definition will not appear in the source."""
+    fp = good_fingerprint(barrier_failures=[
+        BarrierFailure(barrier="BAR_ISOLATION_VERIFIED",
+                       failure_mode="FM_NOT_COMPLIED", primary=True,
+                       evidence_span="without confirming isolation",
+                       evidence_span_en="ohne Isolationsprüfung"),
+    ])
+    assert validate_against_taxonomy(fp, narrative=NARRATIVE) == []
