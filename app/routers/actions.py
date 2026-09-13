@@ -14,6 +14,16 @@ def get_db():
     finally:
         db.close()
 
+@router.get(
+    "/",
+    summary="List all corrective actions (HSE staff only)",
+    description="Returns all corrective actions across all reports, including their status, "
+                "owner, and due date. Requires a valid HSE staff login token.",
+)
+def list_actions(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    actions = db.query(CorrectiveAction).all()
+    return actions
+
 @router.post(
     "/",
     summary="Create a corrective action (HSE staff only)",

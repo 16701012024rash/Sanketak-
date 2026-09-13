@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import reports, risk_radar, patterns, precedents, actions, auth, analyse
+from app.routers import reports, risk_radar, patterns, precedents, actions, auth, analyse, dashboard
 
 app = FastAPI(
     title="Sanketak API",
@@ -16,6 +16,7 @@ app.include_router(precedents.router)
 app.include_router(actions.router)
 app.include_router(auth.router)
 app.include_router(analyse.router)
+app.include_router(dashboard.router)
 
 @app.get(
     "/health",
