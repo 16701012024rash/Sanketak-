@@ -1,0 +1,38 @@
+[
+  {
+    "report_id": "OLD001",
+    "activity": "ACT_MECH_MAINTENANCE",
+    "hazard": "HAZ_MECHANICAL",
+    "life_saving_rules": ["LSR_ENERGY"],
+    "barrier_failures": [
+      {
+        "barrier": "BAR_ISOLATION_VERIFIED",
+        "failure_mode": "FM_NOT_COMPLIED"
+      }
+    ]
+  },
+  {
+    "report_id": "OLD002",
+    "activity": "ACT_HOT_WORK",
+    "hazard": "HAZ_THERMAL",
+    "life_saving_rules": ["LSR_HOTWORK"],
+    "barrier_failures": [
+      {
+        "barrier": "BAR_FIRE_WATCH",
+        "failure_mode": "FM_ABSENT"
+      }
+    ]
+  },
+  {
+    "report_id": "OLD003",
+    "activity": "ACT_MECH_MAINTENANCE",
+    "hazard": "HAZ_MECHANICAL",
+    "life_saving_rules": ["LSR_ENERGY"],
+    "barrier_failures": [
+      {
+        "barrier": "BAR_ISOLATION_VERIFIED",
+        "failure_mode": "FM_NOT_COMPLIED"
+      }
+    ]
+  }
+]
