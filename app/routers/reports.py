@@ -4,6 +4,7 @@ from app.core.db import SessionLocal
 from app.models.report import Report
 from app.core.security import get_current_user
 from app.services.analysis import analyse_report
+from app.services.fingerprint import extract_fingerprint
 import uuid
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -33,6 +34,13 @@ def create_report(raw_text: str, language: str, db: Session = Depends(get_db)):
     db.add(report)
     db.commit()
     db.refresh(report)
+
+    # Run NLP fingerprint extraction (Member 3) and save it
+    fingerprint = extract_fingerprint(report.id, raw_text)
+    report.fingerprint = fingerprint
+    db.commit()
+    db.refresh(report)
+
     return {"anon_token": report.anon_token, "status": report.status}
 
 @router.get(

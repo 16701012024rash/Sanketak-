@@ -18,7 +18,10 @@ class Report(Base):
     equipment_tag = Column(String, nullable=True)
     site_tag = Column(String, nullable=True)
 
-    # Real AI/ML teammate's model output contract
+    # Real AI/ML teammate's model output contract (Member 2)
     sif_probability = Column(Float, nullable=True)
     risk_level = Column(String, nullable=True)  # "HIGH" / "MEDIUM" / "LOW"
     reason = Column(JSON, nullable=True)  # list of explainability strings from the model
+
+    # Real NLP/SIF Fingerprint output (Member 3) — stored as one JSON blob
+    fingerprint = Column(JSON, nullable=True)

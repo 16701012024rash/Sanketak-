@@ -130,6 +130,31 @@ class GroqBackend(LLMBackend):
         return _extract_json(resp.choices[0].message.content)
 
 
+class OpenAIBackend(LLMBackend):
+    name = "openai"
+
+    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
+        from openai import OpenAI
+        key = api_key or os.getenv("OPENAI_API_KEY")
+        if not key:
+            raise LLMError("OPENAI_API_KEY is not set. Put it in nlp/.env")
+        self.client = OpenAI(api_key=key)
+        self.model_name = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+    def complete_json(self, prompt: str, system: Optional[str] = None) -> Dict[str, Any]:
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        resp = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            temperature=0.0,
+            response_format={"type": "json_object"},
+        )
+        return _extract_json(resp.choices[0].message.content)
+
+
 def get_backend(name: Optional[str] = None) -> LLMBackend:
     """Pick a backend. Defaults to LLM_PROVIDER in .env, else Gemini."""
     name = (name or os.getenv("LLM_PROVIDER", "gemini")).lower()
@@ -137,4 +162,6 @@ def get_backend(name: Optional[str] = None) -> LLMBackend:
         return GeminiBackend()
     if name == "groq":
         return GroqBackend()
-    raise LLMError(f"Unknown provider {name!r}. Use 'gemini' or 'groq'.")
+    if name == "openai":
+        return OpenAIBackend()
+    raise LLMError(f"Unknown provider {name!r}. Use 'gemini', 'groq', or 'openai'.")
