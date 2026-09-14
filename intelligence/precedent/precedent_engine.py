@@ -1,4 +1,27 @@
+import logging
+
 from intelligence.precedent.vector_search import vector_search
+
+logger = logging.getLogger(__name__)
+
+
+class PrecedentMatches(list):
+    """The precedent list, plus what was dropped on the way to it.
+
+    A list subclass rather than a tuple so existing callers that iterate
+    or len() the return value keep working. Callers that need to tell
+    "no precedents matched" from "every match was discarded" read
+    `.dropped_count` — and `analyze_report` surfaces it in its result.
+    """
+
+    def __init__(self, matches=(), dropped_report_ids=()):
+        super().__init__(matches)
+        self.dropped_report_ids = list(dropped_report_ids)
+
+    @property
+    def dropped_count(self):
+        return len(self.dropped_report_ids)
+
 
 
 def calculate_structured_score(new_report, old_report):
@@ -48,12 +71,24 @@ def find_precedents(new_report, historical_reports=None, db=None, exclude_report
     }
 
     matches = []
+    dropped_report_ids = []
 
     for result in vector_results:
         report_id = result["report_id"]
         old_report = historical_lookup.get(report_id)
 
         if old_report is None:
+            # F5: the vector index and the historical corpus disagree. This
+            # used to `continue` in silence, so a 0.99 match to a report the
+            # corpus had not loaded produced the same empty list as "nothing
+            # is similar to this" — the worst confusion a safety tool can
+            # make. Record it instead, and let the caller see the count.
+            dropped_report_ids.append(report_id)
+            logger.warning(
+                "precedent %s matched at similarity %.3f but is absent from "
+                "the historical corpus (%d reports) — dropped",
+                report_id, result.get("similarity", 0.0), len(historical_lookup),
+            )
             continue
 
         structured_score = calculate_structured_score(new_report, old_report)
@@ -71,4 +106,12 @@ def find_precedents(new_report, historical_reports=None, db=None, exclude_report
 
     matches.sort(key=lambda x: x["match_score"], reverse=True)
 
-    return matches
+    if dropped_report_ids:
+        logger.warning(
+            "find_precedents(%s): %d of %d vector matches dropped as unknown "
+            "to the corpus; %d precedent(s) returned",
+            new_report.get("report_id"), len(dropped_report_ids),
+            len(vector_results), len(matches),
+        )
+
+    return PrecedentMatches(matches, dropped_report_ids)
