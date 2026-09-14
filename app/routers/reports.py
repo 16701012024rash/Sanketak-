@@ -87,3 +87,18 @@ def get_report(report_id: str, db: Session = Depends(get_db), user: dict = Depen
     if not report:
         return {"error": "Report not found"}
     return report
+
+@router.patch(
+    "/{report_id}/status",
+    summary="Update a report's status (HSE staff only)",
+    description="Moves a report through the HSE workflow (e.g. pending -> in_review -> "
+                "verified -> closed). Requires a valid HSE staff login token.",
+)
+def update_report_status(report_id: str, new_status: str, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        return {"error": "Report not found"}
+    report.status = new_status
+    db.commit()
+    db.refresh(report)
+    return {"id": report.id, "status": report.status}
