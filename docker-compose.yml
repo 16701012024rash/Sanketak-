@@ -24,6 +24,7 @@ services:
     volumes:
       - ./app:/app/app
       - ./nlp:/app/nlp
+      - ./intelligence:/app/intelligence
 
 volumes:
   pgdata:

@@ -5,6 +5,7 @@ from app.models.report import Report
 from app.core.security import get_current_user
 from app.services.analysis import analyse_report
 from app.services.fingerprint import extract_fingerprint
+from app.services.embedding import generate_embedding
 import uuid
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -38,6 +39,12 @@ def create_report(raw_text: str, language: str, db: Session = Depends(get_db)):
     # Run NLP fingerprint extraction (Member 3) and save it
     fingerprint = extract_fingerprint(report.id, raw_text)
     report.fingerprint = fingerprint
+    db.commit()
+    db.refresh(report)
+
+    # Generate embedding for precedent matching (Member 4) and save it
+    embedding = generate_embedding(fingerprint)
+    report.embedding = embedding
     db.commit()
     db.refresh(report)
 

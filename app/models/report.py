@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Text, DateTime, Float, func
 from sqlalchemy.dialects.postgresql import JSON
+from pgvector.sqlalchemy import Vector
 from app.core.db import Base
 import uuid
 
@@ -25,3 +26,6 @@ class Report(Base):
 
     # Real NLP/SIF Fingerprint output (Member 3) — stored as one JSON blob
     fingerprint = Column(JSON, nullable=True)
+
+    # Real embedding for precedent matching (Member 4) — 384-dim, all-MiniLM-L6-v2
+    embedding = Column(Vector(384), nullable=True)
