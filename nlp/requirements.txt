@@ -14,3 +14,6 @@ typing_extensions==4.16.0
 pandas==2.3.3
 python-dotenv==1.2.1
 
+google-generativeai==0.8.6
+groq==1.0.0
+openai==2.48.0

@@ -9,6 +9,7 @@ from .models import (
 from .store import (
     AnnotationError,
     append_annotation,
+    partition_usable,
     read_annotations,
     validate_against_taxonomy,
     validate_file,
@@ -23,6 +24,7 @@ __all__ = [
     "read_annotations",
     "write_annotations",
     "append_annotation",
+    "partition_usable",
     "validate_against_taxonomy",
     "validate_file",
     "AnnotationError",

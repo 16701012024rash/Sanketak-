@@ -19,6 +19,7 @@ from annotation import (
     ExtractionStatus,
     Fingerprint,
     append_annotation,
+    partition_usable,
     read_annotations,
     validate_against_taxonomy,
     write_annotations,
@@ -260,3 +261,40 @@ def test_gloss_is_not_validated_against_the_narrative():
                        evidence_span_en="ohne Isolationsprüfung"),
     ])
     assert validate_against_taxonomy(fp, narrative=NARRATIVE) == []
+
+
+# --------------------------------------------------------------------------
+# partition_usable
+# --------------------------------------------------------------------------
+
+def test_partition_usable_sets_aside_failed_records():
+    """FAILED records are separated, not silently counted as ordinary reports."""
+    ok = good_fingerprint(report_id="R00001")
+    partial = good_fingerprint(
+        report_id="R00002", extraction_status=ExtractionStatus.PARTIAL,
+        activity=None,
+    )
+    failed = Fingerprint(
+        report_id="R00003",
+        extraction_status=ExtractionStatus.FAILED,
+        barrier_failures=[],
+    )
+
+    usable, unusable = partition_usable([ok, partial, failed])
+
+    assert [f.report_id for f in usable] == ["R00001", "R00002"]
+    assert [f.report_id for f in unusable] == ["R00003"]
+
+
+def test_partition_usable_keeps_partial_on_the_usable_side():
+    """A partial fingerprint carries real content; its nulls are answers."""
+    partial = good_fingerprint(
+        report_id="R00004", extraction_status=ExtractionStatus.PARTIAL,
+        activity=None, exposure=None,
+    )
+    usable, unusable = partition_usable([partial])
+    assert len(usable) == 1 and unusable == []
+
+
+def test_partition_usable_handles_an_empty_corpus():
+    assert partition_usable([]) == ([], [])

@@ -16,13 +16,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple
 
 from pydantic import ValidationError
 
 from loader import Taxonomy, get_taxonomy
 
-from .models import Fingerprint
+from .models import ExtractionStatus, Fingerprint
 
 
 class AnnotationError(Exception):
@@ -79,6 +79,42 @@ def append_annotation(path: Path, fingerprint: Fingerprint) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as fh:
         fh.write(fingerprint.model_dump_json(exclude_none=True) + "\n")
+
+
+# --------------------------------------------------------------------------
+# usability
+# --------------------------------------------------------------------------
+
+def partition_usable(
+    fingerprints: Iterable[Fingerprint],
+) -> Tuple[List[Fingerprint], List[Fingerprint]]:
+    """Split records into (usable, unusable).
+
+    Unusable means `extraction_status == FAILED`: nothing was extractable
+    beyond the raw text, so every structured field is null.
+
+    Failed records are deliberately *kept* in the corpus (see
+    `ExtractionStatus`) — dropping them at write time would hide the sites
+    that report vaguely. But a downstream consumer that counts activities,
+    hazards or barrier failures must not treat a failed record as an
+    ordinary report: it would enter every denominator as a report where
+    nothing went wrong, which is not what the null means.
+
+    So the record survives, and the consumer partitions instead of filtering
+    blind — it can report how many it set aside.
+
+    PARTIAL records stay on the usable side. A partial fingerprint carries
+    real extracted content; its nulls mean "the report does not say", which
+    is a legitimate answer, not a failure.
+    """
+    usable: List[Fingerprint] = []
+    unusable: List[Fingerprint] = []
+    for fp in fingerprints:
+        if fp.extraction_status == ExtractionStatus.FAILED:
+            unusable.append(fp)
+        else:
+            usable.append(fp)
+    return usable, unusable
 
 
 # --------------------------------------------------------------------------
