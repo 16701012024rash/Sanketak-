@@ -17,6 +17,26 @@ def get_db():
     finally:
         db.close()
 
+def serialize_report(report: Report) -> dict:
+    """Converts a Report to a dict, excluding the large embedding vector."""
+    return {
+        "id": report.id,
+        "anon_token": report.anon_token,
+        "raw_text": report.raw_text,
+        "language": report.language,
+        "status": report.status,
+        "submitted_at": report.submitted_at,
+        "risk_score": report.risk_score,
+        "barrier_category": report.barrier_category,
+        "equipment_tag": report.equipment_tag,
+        "site_tag": report.site_tag,
+        "sif_probability": report.sif_probability,
+        "risk_level": report.risk_level,
+        "reason": report.reason,
+        "fingerprint": report.fingerprint,
+        # embedding intentionally excluded — large array, not human-relevant
+    }
+
 @router.post(
     "/",
     summary="Submit an anonymous safety report",
@@ -60,10 +80,24 @@ def check_status(token: str, db: Session = Depends(get_db)):
     report = db.query(Report).filter(Report.anon_token == token).first()
     if not report:
         return {"error": "Invalid token or report not found"}
+
+    fp = report.fingerprint or {}
+    barrier_failures = fp.get("barrier_failures") or []
+    barrier_failure_text = barrier_failures[0].get("barrier") if barrier_failures else None
+
     return {
         "status": report.status,
         "language": report.language,
-        "submitted_at": report.submitted_at
+        "submitted_at": report.submitted_at,
+        "risk_level": report.risk_level,
+        "analysis": {
+            "activity": fp.get("activity"),
+            "hazard": fp.get("hazard"),
+            "exposure": fp.get("exposure"),
+            "barrier_failure": barrier_failure_text,
+            "potential_consequence": fp.get("potential_consequence"),
+            "life_saving_rules": fp.get("life_saving_rules") or [],
+        } if fp else None,
     }
 
 @router.get(
@@ -74,7 +108,7 @@ def check_status(token: str, db: Session = Depends(get_db)):
 )
 def list_reports(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     reports = db.query(Report).all()
-    return reports
+    return [serialize_report(r) for r in reports]
 
 @router.get(
     "/{report_id}",
@@ -86,7 +120,7 @@ def get_report(report_id: str, db: Session = Depends(get_db), user: dict = Depen
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         return {"error": "Report not found"}
-    return report
+    return serialize_report(report)
 
 @router.patch(
     "/{report_id}/status",
