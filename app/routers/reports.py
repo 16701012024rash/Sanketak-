@@ -62,7 +62,12 @@ def serialize_report(report: Report) -> dict:
                 "Returns an anonymous token used to check status later. No personal identifying "
                 "information is stored.",
 )
-def create_report(raw_text: str, language: str, db: Session = Depends(get_db)):
+def create_report(
+    raw_text: str,
+    language: str,
+    site: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
     analysis = analyse_report(raw_text)
     report = Report(
         anon_token=str(uuid.uuid4()),
@@ -70,6 +75,14 @@ def create_report(raw_text: str, language: str, db: Session = Depends(get_db)):
         language=language,
         **analysis,
     )
+
+    # The site the worker selected, when they selected one. Stored in the
+    # existing site_tag column, which until now held a value derived from the
+    # report text rather than from anything the worker said. A report with no
+    # site keeps site_tag null, which the dashboard already renders as
+    # "Not recorded" -- a null here means "not stated", never "everywhere".
+    if site and site.strip():
+        report.site_tag = site.strip()
     db.add(report)
     db.commit()
     db.refresh(report)

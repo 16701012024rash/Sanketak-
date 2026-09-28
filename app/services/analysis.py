@@ -1,4 +1,4 @@
-import random
+﻿import random
 import re
 import joblib
 import os
@@ -114,9 +114,12 @@ def predict_sif(text: str) -> dict:
 def analyse_report(raw_text: str) -> dict:
     """
     Runs full analysis on report text: real SIF prediction (Member 2's model)
-    plus demo/UI fields (equipment_tag, barrier_category, site_tag) used by
-    risk-radar and patterns endpoints. Equipment/barrier tags now check for
+    plus demo/UI fields (equipment_tag, barrier_category) used by the
+    risk-radar and patterns endpoints. Equipment/barrier tags check for
     actual keywords in the text before falling back to random assignment.
+
+    site_tag is NOT set here. It now comes from the worker, via the `site`
+    parameter on POST /reports/, and is null when they did not give one.
     """
     sif_result = predict_sif(raw_text)
 
@@ -125,8 +128,14 @@ def analyse_report(raw_text: str) -> dict:
     equipment_tag = detect_tag(raw_text, EQUIPMENT_KEYWORDS, EQUIPMENT_TAGS, seed)
     barrier_category = detect_tag(raw_text, BARRIER_KEYWORDS, BARRIER_CATEGORIES, seed + 1)
 
-    random.seed(seed)
-    site_tag = f"site-{seed % 5 + 1}"
+    # site_tag is deliberately NOT produced here any more.
+    #
+    # It used to be f"site-{sum(ord(c) for c in raw_text) % 5 + 1}" -- a hash
+    # of the report text bucketed into five fake sites, which the dashboard
+    # then rendered as though it were a real location. The same incident
+    # described in three different ways landed at three different "sites",
+    # and Risk Radar grouped by it. A worker-supplied site is written by the
+    # /reports/ endpoint instead; absent one, site_tag stays null.
 
     return {
         "sif_probability": sif_result["sif_probability"],
@@ -135,5 +144,4 @@ def analyse_report(raw_text: str) -> dict:
         "risk_score": sif_result["sif_probability"],
         "barrier_category": barrier_category,
         "equipment_tag": equipment_tag,
-        "site_tag": site_tag,
     }

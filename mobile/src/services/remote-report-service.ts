@@ -2,6 +2,9 @@ import type { ReportLanguage, WorkerSafetyReport } from "@/types";
 
 const requestTimeoutMs = 20000;
 
+// What report-service.ts writes when the worker skipped the site picker.
+const NOT_PROVIDED = "Not provided";
+
 export interface RemoteReportResult {
   remoteReportId?: string;
   remoteAudioPath?: string;
@@ -35,11 +38,21 @@ export async function submitReportToBackend(
   // has been loaded, and the only thing importing it is the Supabase client,
   // which a text-only submission never touches. encodeURIComponent is built
   // in and has no such load-order dependency.
-  const query =
+  let query =
     "raw_text=" +
     encodeURIComponent(report.description) +
     "&language=" +
     encodeURIComponent(toBackendLanguage(report.language));
+
+  // The worker's site, only when they actually picked one. The rest of the
+  // app stores "Not provided" as a display placeholder for an unanswered
+  // question; sending that would record the literal string as a location and
+  // make "Not provided" look like a real site on the HSE dashboard.
+  const site = toBackendSite(report.site);
+
+  if (site) {
+    query += "&site=" + encodeURIComponent(site);
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => {
     controller.abort();
@@ -85,6 +98,20 @@ function getApiBaseUrl(): string {
   }
 
   return apiBaseUrl.replace(/\/+$/, "");
+}
+
+// The site to send, or undefined when the worker did not choose one.
+// Queued reports go through this too: an item queued before a site was
+// chosen carries the same placeholder, and it must not become a location
+// when the queue flushes days later.
+function toBackendSite(site: string | undefined): string | undefined {
+  const trimmed = (site ?? "").trim();
+
+  if (!trimmed || trimmed === NOT_PROVIDED) {
+    return undefined;
+  }
+
+  return trimmed;
 }
 
 function toBackendLanguage(language: ReportLanguage): string {

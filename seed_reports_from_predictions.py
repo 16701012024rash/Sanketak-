@@ -165,6 +165,12 @@ def main():
             # left tagged "live" from an earlier run would otherwise stay in
             # the HSE queue forever.
             report.source = args.source
+            # The historical corpus carries no site: these are public OSHA and
+            # MSHA records, not OIL submissions. Cleared explicitly rather than
+            # just left unset, so a re-run also removes the fabricated
+            # "site-1".."site-5" values an earlier version of analyse_report
+            # wrote here. Null means "not stated", which is the truth.
+            report.site_tag = None
             report.raw_text = raw_text
             report.language = fingerprint.get("language") or "en"
             report.fingerprint = fingerprint
