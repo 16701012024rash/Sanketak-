@@ -40,14 +40,57 @@ from collections import Counter
 MIN_OCCURRENCES = 2
 MIN_RATE_RATIO = 2.0
 
+# MIN_BASELINE_OCCURRENCES is the other half of MIN_OCCURRENCES: the ratio is
+# just as unstable when the *denominator* is tiny.
+#
+# A pair with no history at all has no rate to be elevated above, so any
+# stand-in denominator is invented rather than measured, and the ratio it
+# produces is an artefact of the stand-in. On the 492-report corpus
+# BAR_STANDBY_ATTENDANT/FM_ABSENT appeared twice in a window with a baseline
+# of ZERO and scored 52.55 -- top of the list, above every pair with a real
+# measured increase. That is the same failure as ranking by raw count: a
+# number that looks like evidence and is not.
+#
+# Pairs below this gate are not scored on rate ratio at all. They are real and
+# worth seeing, so they are returned separately as NEWLY_OBSERVED, where two
+# occurrences of something never seen before is the whole claim being made --
+# no ratio attached, nothing to mistake for a measured trend.
+MIN_BASELINE_OCCURRENCES = 2
+
 
 def detect_emerging_risks(
     historical_reports,
     recent_reports,
     min_occurrences=MIN_OCCURRENCES,
     min_rate_ratio=MIN_RATE_RATIO,
+    min_baseline_occurrences=MIN_BASELINE_OCCURRENCES,
 ):
     """Barrier failures running above their historical rate in `recent_reports`.
+
+    Returns the EMERGING list only, so existing callers are unaffected. Use
+    `detect_emerging_risks_with_new` to also get the pairs that were excluded
+    for having no measurable baseline."""
+    emerging, _ = detect_emerging_risks_with_new(
+        historical_reports,
+        recent_reports,
+        min_occurrences=min_occurrences,
+        min_rate_ratio=min_rate_ratio,
+        min_baseline_occurrences=min_baseline_occurrences,
+    )
+    return emerging
+
+
+def detect_emerging_risks_with_new(
+    historical_reports,
+    recent_reports,
+    min_occurrences=MIN_OCCURRENCES,
+    min_rate_ratio=MIN_RATE_RATIO,
+    min_baseline_occurrences=MIN_BASELINE_OCCURRENCES,
+):
+    """As `detect_emerging_risks`, plus the newly-observed pairs.
+
+    Returns `(emerging, newly_observed)`. The split exists so a pair with no
+    history cannot compete on rate ratio against pairs that have one.
 
     `historical_reports` is the baseline — the parameter the previous version
     ignored. Reports that appear in `recent_reports` are removed from it by
@@ -77,30 +120,39 @@ def detect_emerging_risks(
         # the honest answer; the alternative is to flag whatever happens to be
         # in the window, which is the behaviour this function was rewritten to
         # remove.
-        return []
+        return [], []
 
     emerging_risks = []
+    newly_observed = []
 
     for (barrier, failure_mode), count in recent_counts.items():
         if count < min_occurrences:
             continue
 
         baseline_count = baseline_counts[(barrier, failure_mode)]
-
         recent_share = count / recent_total
-        # A pair with no baseline history is genuinely new, so it needs a
-        # finite stand-in rather than a division by zero. Floor it at half an
-        # occurrence — below the resolution of the data, so the ratio comes
-        # out large without being infinite.
-        #
-        # Note this floor applies ONLY to unseen pairs. An earlier draft used
-        # add-one smoothing across all pairs, which quietly *shrinks* the
-        # baseline share of mid-frequency pairs (the +1 on the numerator is
-        # outweighed by the +len(pairs) on the denominator) and so inflates
-        # their ratio. That pushed BAR_POSITIONING/FM_INEFFECTIVE from a true
-        # 1.44 to 1.61 and over the gate — the bias pointed at flagging more,
-        # which is the wrong direction for this particular function.
-        baseline_share = max(baseline_count, 0.5) / baseline_total
+
+        if baseline_count < min_baseline_occurrences:
+            # No measurable base rate. Reported, but never scored: there is
+            # no denominator here that was observed rather than chosen, so
+            # any ratio would be a property of the choice. `rate_ratio` is
+            # explicitly None rather than absent, so a consumer that sorts on
+            # it fails loudly instead of silently ordering these first.
+            newly_observed.append({
+                "barrier": barrier,
+                "failure_mode": failure_mode,
+                "recent_occurrences": count,
+                "baseline_occurrences": baseline_count,
+                "rate_ratio": None,
+                "recent_share": round(recent_share, 4),
+                "baseline_share": None,
+                "risk_status": "NEWLY_OBSERVED",
+            })
+            continue
+
+        # Past the gate the baseline is at least `min_baseline_occurrences`
+        # real observations, so the share is measured and needs no stand-in.
+        baseline_share = baseline_count / baseline_total
         rate_ratio = recent_share / baseline_share
 
         if rate_ratio < min_rate_ratio:
@@ -121,8 +173,13 @@ def detect_emerging_risks(
         key=lambda x: (x["rate_ratio"], x["recent_occurrences"]),
         reverse=True
     )
+    # Nothing to rank these by but volume -- they all share the same claim.
+    newly_observed.sort(
+        key=lambda x: x["recent_occurrences"],
+        reverse=True
+    )
 
-    return emerging_risks
+    return emerging_risks, newly_observed
 
 
 def _failure_keys(reports):

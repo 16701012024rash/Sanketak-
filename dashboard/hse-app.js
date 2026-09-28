@@ -777,7 +777,7 @@
         const progressCount = actions.filter(function (action) { return action.status === "in_progress"; }).length;
         const actionTakenCount = actions.filter(function (action) { return action.status === "action_taken"; }).length;
         const overdueCount = actions.filter(function (action) {
-            return action.status !== "verified" && new Date(action.dueDate + "T23:59:59") < now;
+            return action.status !== "verified" && isOverdueDate(action.dueDate, now);
         }).length;
         const verifiedCount = actions.filter(function (action) { return action.status === "verified"; }).length;
 
@@ -813,7 +813,7 @@
                         </thead>
                         <tbody>
                             ${actions.map(function (action) {
-                                const isOverdue = action.status !== "verified" && new Date(action.dueDate + "T23:59:59") < now;
+                                const isOverdue = action.status !== "verified" && isOverdueDate(action.dueDate, now);
                                 return `
                                     <tr>
                                         <td><strong>${esc(action.trackingToken)}</strong></td>
@@ -1313,7 +1313,13 @@
         }
 
         const hours = selected === "24h" ? 24 : 24 * 7;
-        const elapsedHours = (Date.now() - new Date(receivedAt).getTime()) / 36e5;
+        const parsed = window.SanketakTime.parse(receivedAt);
+
+        if (!parsed) {
+            return false;
+        }
+
+        const elapsedHours = (Date.now() - parsed.getTime()) / 36e5;
 
         return elapsedHours <= hours;
     }
@@ -1428,11 +1434,14 @@
             return "Not available";
         }
 
-        const diffMs = Date.now() - new Date(value).getTime();
+        // Naive backend timestamps are UTC; see window.SanketakTime.
+        const parsed = window.SanketakTime.parse(value);
 
-        if (Number.isNaN(diffMs)) {
+        if (!parsed) {
             return "Not available";
         }
+
+        const diffMs = Date.now() - parsed.getTime();
 
         const minutes = Math.max(1, Math.round(diffMs / 60000));
 
@@ -1449,12 +1458,35 @@
         return Math.round(hours / 24) + " days ago";
     }
 
+    // End of the due day in the viewer's timezone. Tolerates both shapes the
+    // due date arrives in: "2026-11-01" from the form, "2026-11-01T00:00:00"
+    // from the backend, which would otherwise build "…T00:00:00T23:59:59".
+    function isOverdueDate(value, now) {
+        const day = window.SanketakTime.toCalendarDate(value);
+
+        if (!day) {
+            return false;
+        }
+
+        const deadline = new Date(day + "T23:59:59");
+
+        return !Number.isNaN(deadline.getTime()) && deadline < now;
+    }
+
     function formatDate(value) {
         if (!value) {
             return "Not available";
         }
 
-        return new Date(value + "T00:00:00").toLocaleDateString(undefined, {
+        const parsed = window.SanketakTime.parse(
+            window.SanketakTime.toCalendarDate(value)
+        );
+
+        if (!parsed) {
+            return "Not available";
+        }
+
+        return parsed.toLocaleDateString(undefined, {
             day: "2-digit",
             month: "short",
             year: "numeric"

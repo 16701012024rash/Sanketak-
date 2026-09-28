@@ -14,3 +14,8 @@ data/
 .pytest_cache/
 nlp/data/
 .env
+
+# Added before the working_ver commit: these were not covered.
+node_modules/
+.expo/
+.env.*

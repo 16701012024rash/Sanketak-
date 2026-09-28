@@ -18,6 +18,12 @@ Run inside the api container, where the model files and the database are:
 
 Re-running is safe: ids are derived from the source REPORT_ID, so a second
 run updates the same rows instead of creating duplicates.
+
+Rows are written with source="seed" so they stay out of the HSE-facing
+listings (GET /reports/, /actions/, /dashboard/summary) while remaining
+visible to the intelligence paths, which need the historical volume. Without
+that, this script silently fills an officer's triage queue with 500 historical
+OSHA/MSHA accidents. Override with --source live only if that is truly wanted.
 """
 
 import argparse
@@ -82,6 +88,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--predictions", default=DEFAULT_PREDICTIONS)
     parser.add_argument("--narratives", default=DEFAULT_NARRATIVES)
+    parser.add_argument(
+        "--source", default="seed", choices=("seed", "live"),
+        help="Value for Report.source. Defaults to 'seed': this script loads "
+             "the historical analysis corpus, which must stay out of the HSE "
+             "triage queue. Only pass 'live' if you really mean to present "
+             "these as worker submissions.",
+    )
     parser.add_argument("--limit", type=int, default=None,
                         help="Seed only the first N predictions (for a smoke test).")
     args = parser.parse_args()
@@ -141,12 +154,17 @@ def main():
                     id=report_id,
                     anon_token=str(uuid.uuid5(NAMESPACE, f"token:{source_id}")),
                     status="pending",
+                    source=args.source,
                 )
                 db.add(report)
                 inserted += 1
             else:
                 updated += 1
 
+            # Set on update too: re-running is documented as safe, and a row
+            # left tagged "live" from an earlier run would otherwise stay in
+            # the HSE queue forever.
+            report.source = args.source
             report.raw_text = raw_text
             report.language = fingerprint.get("language") or "en"
             report.fingerprint = fingerprint

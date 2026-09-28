@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from intelligence.barrier_drift.emerging_risk import (   # noqa: E402
     detect_emerging_risks,
+    detect_emerging_risks_with_new,
 )
 
 COMMON = ("BAR_POSITIONING", "FM_NOT_COMPLIED")
@@ -112,14 +113,21 @@ def test_a_single_occurrence_cannot_spike():
     assert ("BAR_NEW", "FM_ABSENT") not in flagged(risks)
 
 
-def test_a_repeated_new_pair_is_flagged():
-    """Two occurrences of a pair with no history is the clearest emergence."""
+def test_a_repeated_new_pair_is_newly_observed_not_emerging():
+    """Two occurrences of a pair with no history is reported, but not scored.
+
+    This assertion used to read `in flagged(risks)`. A pair with a baseline of
+    zero has no rate to be elevated above, so putting it on the EMERGING list
+    ranked an invented denominator against measured ones -- see
+    `test_zero_baseline_pair_does_not_outrank_a_real_spike`.
+    """
     baseline = reports("H", [[COMMON]] * 50)
     recent = reports("R", [[("BAR_NEW", "FM_ABSENT")]] * 2 + [[COMMON]] * 5)
 
-    risks = detect_emerging_risks(baseline + recent, recent)
+    emerging, newly = detect_emerging_risks_with_new(baseline + recent, recent)
 
-    assert ("BAR_NEW", "FM_ABSENT") in flagged(risks)
+    assert ("BAR_NEW", "FM_ABSENT") not in flagged(emerging)
+    assert ("BAR_NEW", "FM_ABSENT") in flagged(newly)
 
 
 def test_ratio_gate_is_enforced():
@@ -142,26 +150,117 @@ def test_baseline_is_used_at_all():
     """
     recent = reports("R", [[RARE]] * 3)
 
-    seen_before = reports("H", [[RARE]] * 50)
-    never_seen = reports("H", [[COMMON]] * 50)
+    # Both histories contain RARE, so both are scored on a measured baseline
+    # and the only difference is the rate. Using a zero-baseline history here
+    # would prove nothing now that such pairs are excluded from scoring.
+    seen_constantly = reports("H", [[RARE]] * 50)
+    seen_rarely = reports("H", [[COMMON]] * 48 + [[RARE]] * 2)
 
-    a = detect_emerging_risks(seen_before + recent, recent)
-    b = detect_emerging_risks(never_seen + recent, recent)
+    a = detect_emerging_risks(seen_constantly + recent, recent)
+    b = detect_emerging_risks(seen_rarely + recent, recent)
 
     assert flagged(a) != flagged(b), (
         "the historical baseline is not being read — this was the bug"
     )
     assert RARE not in flagged(a)   # always been the only failure: normal
-    assert RARE in flagged(b)       # never seen before: emerging
+    assert RARE in flagged(b)       # 4% of history, 100% of the window
 
 
 def test_recent_reports_are_excluded_from_their_own_baseline():
-    """The window must not dilute the baseline it is measured against."""
+    """The window must not dilute the baseline it is measured against.
+
+    Asserted on the ratio rather than on membership: RARE clears the gate
+    either way here, so only the value shows whether the window was excluded.
+
+    excluded  -> baseline 2/20  = 0.10, recent 3/3 = 1.0 -> 10.0
+    included  -> baseline 5/23  = 0.217              -> 4.6
+    """
     recent = reports("R", [[RARE]] * 3)
-    baseline = reports("H", [[COMMON]] * 20)
+    baseline = reports("H", [[COMMON]] * 18 + [[RARE]] * 2)
 
     with_overlap = detect_emerging_risks(baseline + recent, recent)
+
     assert RARE in flagged(with_overlap)
+    assert ratio_of(with_overlap, RARE) == 10.0
+
+
+# --------------------------------------------------------------------------
+# THE second regression: a ratio needs a measured denominator
+# --------------------------------------------------------------------------
+
+def test_zero_baseline_pair_does_not_outrank_a_real_spike():
+    """A pair with no history must not top the EMERGING list.
+
+    The load-bearing assertion, and the sibling of
+    `test_pair_at_its_base_rate_is_not_emerging`. Both pin the same mistake at
+    opposite ends: there, a large numerator with no elevation; here, a large
+    ratio with no denominator.
+
+    On the 492-report corpus this shipped as BAR_STANDBY_ATTENDANT/FM_ABSENT --
+    two occurrences, baseline of zero, rate_ratio 52.55, first on the list,
+    above every pair with a measured increase. The ratio was a property of the
+    0.5 stand-in denominator, not of the data.
+    """
+    # SPIKE has a real, measured history and genuinely quadruples its rate.
+    spike = ("BAR_EDGE_PROTECTION", "FM_INEFFECTIVE")
+    unseen = ("BAR_NEVER_BEFORE", "FM_ABSENT")
+
+    baseline = reports("H", [[COMMON]] * 40 + [[spike]] * 10)
+    recent = reports("R", [[spike]] * 4 + [[unseen]] * 2 + [[COMMON]] * 4)
+
+    emerging, newly = detect_emerging_risks_with_new(baseline + recent, recent)
+
+    # The unseen pair is not scored at all ...
+    assert unseen not in flagged(emerging)
+    assert ratio_of(emerging, unseen) is None
+    # ... and the pair with a real base rate is what an officer sees first.
+    assert emerging, "the genuine spike must still be flagged"
+    assert (emerging[0]["barrier"], emerging[0]["failure_mode"]) == spike
+
+    # The unseen pair is still surfaced, just without a fabricated ratio.
+    assert unseen in flagged(newly)
+    entry = next(r for r in newly if (r["barrier"], r["failure_mode"]) == unseen)
+    assert entry["risk_status"] == "NEWLY_OBSERVED"
+    assert entry["baseline_occurrences"] == 0
+    assert entry["rate_ratio"] is None
+    assert entry["baseline_share"] is None
+
+
+def test_single_baseline_occurrence_is_also_too_thin_to_score():
+    """A baseline of one is a coin-flip denominator, not a rate."""
+    thin = ("BAR_THIN_HISTORY", "FM_ABSENT")
+    baseline = reports("H", [[COMMON]] * 49 + [[thin]])
+    recent = reports("R", [[thin]] * 2 + [[COMMON]] * 5)
+
+    emerging, newly = detect_emerging_risks_with_new(baseline + recent, recent)
+
+    assert thin not in flagged(emerging)
+    assert thin in flagged(newly)
+
+
+def test_a_pair_with_a_real_baseline_is_still_scored_normally():
+    """The gate must not swallow pairs that do have a measurable history."""
+    solid = ("BAR_GAS_TEST", "FM_ABSENT")
+    baseline = reports("H", [[COMMON]] * 46 + [[solid]] * 4)
+    recent = reports("R", [[solid]] * 5 + [[COMMON]] * 5)
+
+    emerging, newly = detect_emerging_risks_with_new(baseline + recent, recent)
+
+    assert solid in flagged(emerging)
+    assert solid not in flagged(newly)
+    assert ratio_of(emerging, solid) > 1.0
+
+
+def test_newly_observed_still_respects_the_recent_occurrence_gate():
+    """One sighting of something new is not yet an observation worth naming."""
+    once = ("BAR_SEEN_ONCE", "FM_ABSENT")
+    baseline = reports("H", [[COMMON]] * 50)
+    recent = reports("R", [[once]] + [[COMMON]] * 5)
+
+    emerging, newly = detect_emerging_risks_with_new(baseline + recent, recent)
+
+    assert once not in flagged(emerging)
+    assert once not in flagged(newly)
 
 
 def test_no_baseline_flags_nothing():

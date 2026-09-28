@@ -1,7 +1,9 @@
 ﻿from intelligence.barrier_drift.barrier_drift import (
     detect_barrier_drift_with_slice,
 )
-from intelligence.barrier_drift.emerging_risk import detect_emerging_risks
+from intelligence.barrier_drift.emerging_risk import (
+    detect_emerging_risks_with_new,
+)
 from intelligence.data.report_repository import (
     load_historical_reports_with_stats,
 )
@@ -59,7 +61,10 @@ def analyze_report(new_report, recent_reports, db=None, source=None):
         hazard=new_report.get("hazard")
     )
 
-    emerging_risks = detect_emerging_risks(
+    # Split deliberately: a pair with no measurable baseline is reported as
+    # NEWLY_OBSERVED rather than being given a rate ratio against a
+    # denominator that was chosen instead of observed.
+    emerging_risks, newly_observed = detect_emerging_risks_with_new(
         historical_reports,
         recent_reports
     )
@@ -79,5 +84,7 @@ def analyze_report(new_report, recent_reports, db=None, source=None):
         # was clean.
         "barrier_drift_slice": drift_slice,
         "emerging_risks": emerging_risks,
+        # Additive: pairs seen in the window with little or no history.
+        "newly_observed": newly_observed,
         "corpus": corpus_stats
     }

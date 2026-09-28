@@ -8,6 +8,87 @@
 // Where the backend records nothing, the field says so rather than carrying a
 // derived stand-in. See NOT_RECORDED.
 
+// --------------------------------------------------------------------------
+// Backend timestamps
+//
+// FastAPI serialises a naive datetime with no timezone designator, e.g.
+// "2026-09-27T23:42:49.268600". The values are UTC, but `new Date(...)` on a
+// string with no designator applies the VIEWER's local timezone, so in IST
+// (UTC+5:30) every timestamp read 5.5 hours early: a report filed one minute
+// ago displayed as "6 hr ago".
+//
+// One helper, used by both hse-services.js and hse-app.js, so the rule lives
+// in a single place instead of being appended at each call site.
+// --------------------------------------------------------------------------
+window.SanketakTime = (function () {
+    // "2026-11-01"
+    const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+    // trailing "Z", "+05:30", "+0530" or "-08:00"
+    const HAS_ZONE = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+    function parse(value) {
+        if (!value) {
+            return null;
+        }
+
+        if (value instanceof Date) {
+            return Number.isNaN(value.getTime()) ? null : value;
+        }
+
+        const text = String(value).trim();
+
+        if (!text) {
+            return null;
+        }
+
+        let parsed;
+
+        if (DATE_ONLY.test(text)) {
+            // A calendar date, not an instant. Local midnight keeps it on the
+            // same day for every viewer; forcing UTC would move a due date
+            // back a day for anyone west of Greenwich.
+            parsed = new Date(text + "T00:00:00");
+        } else if (HAS_ZONE.test(text)) {
+            // Already unambiguous. Left exactly as the backend sent it.
+            parsed = new Date(text);
+        } else {
+            // Naive datetime: the case this helper exists for. The space form
+            // is accepted too, since that is how psql prints the same value.
+            parsed = new Date(text.replace(" ", "T") + "Z");
+        }
+
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    // Milliseconds since epoch, or 0 when unparseable, for sorting.
+    function toTime(value) {
+        const parsed = parse(value);
+        return parsed ? parsed.getTime() : 0;
+    }
+
+    // The calendar-date portion, whatever shape arrived. due_date is a
+    // DateTime column, so the backend returns "2026-11-01T00:00:00" while the
+    // assignment form produces "2026-11-01"; callers that append "T00:00:00"
+    // or "T23:59:59" need the bare date or they build an invalid string.
+    function toCalendarDate(value) {
+        if (!value) {
+            return "";
+        }
+
+        const text = String(value).trim();
+
+        if (DATE_ONLY.test(text)) {
+            return text;
+        }
+
+        const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+
+        return match ? match[1] : "";
+    }
+
+    return { parse: parse, toTime: toTime, toCalendarDate: toCalendarDate };
+})();
+
 (function () {
     // The backend has no field for this at all.
     const NOT_RECORDED = "Not recorded";
@@ -429,7 +510,11 @@
 
         return {
             id: String(row.id || ""),
-            trackingToken: String(row.anon_token || row.id || ""),
+            // The report's own id, not anon_token. That token is the
+            // worker's private handle for their own report and is no longer
+            // returned to HSE users; this is the same value the detail page
+            // and every report.html?id= link already use.
+            trackingToken: String(row.id || ""),
             // The backend stores no short description, only the full report
             // text. Shortened here for tables; originalReport keeps it whole.
             description: shorten(row.raw_text),
@@ -554,7 +639,7 @@
             return priorityDelta;
         }
 
-        return new Date(b.receivedAt || 0) - new Date(a.receivedAt || 0);
+        return window.SanketakTime.toTime(b.receivedAt) - window.SanketakTime.toTime(a.receivedAt);
     }
 
     // POST /actions/ accepts only report_id, description and owner, all as

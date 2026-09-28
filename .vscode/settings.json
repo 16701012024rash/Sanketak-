@@ -1,3 +1,10 @@
 {
-    "liveServer.settings.port": 5501
+    "liveServer.settings.port": 5501,
+    // Serve the dashboard folder as the site root, so opening any page gives
+    // the live FastAPI-backed dashboard. Previously Live Server served the
+    // repository root, where a second, older Supabase-era copy of the same
+    // pages sat at /index.html — which copy you got depended on which file
+    // you happened to right-click. That copy now lives in
+    // dashboard-legacy.superseded/.
+    "liveServer.settings.root": "/dashboard"
 }

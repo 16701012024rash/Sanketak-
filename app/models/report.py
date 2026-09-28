@@ -13,6 +13,15 @@ class Report(Base):
     status = Column(String, default="pending")
     submitted_at = Column(DateTime, server_default=func.now())
 
+    # "live"  — a real submission from a worker, via the app or the API.
+    # "seed"  — a row from the historical analysis corpus, loaded for volume.
+    #
+    # HSE-facing listings show live rows only: an officer triaging today's
+    # reports must not have a 2014 OSHA accident in the same queue. The
+    # intelligence paths (precedents, barrier drift, emerging risk) read
+    # every row regardless, because they need the history to detect anything.
+    source = Column(String, nullable=False, server_default="live", index=True)
+
     # Placeholder/demo analysis fields (used by risk-radar, patterns for demo purposes)
     risk_score = Column(Float, nullable=True)
     barrier_category = Column(String, nullable=True)

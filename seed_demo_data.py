@@ -41,6 +41,12 @@ for r in demo_reports:
         raw_text=r["raw_text"],
         language=r["language"],
         status="pending",
+        # Explicitly "live": unlike the 500-report historical corpus in
+        # seed_reports_from_predictions.py, these three are demo submissions
+        # that are meant to appear in the HSE queue and be triaged on screen.
+        # Stated rather than left to the column default, so the intent is
+        # visible and a change to that default cannot silently move them.
+        source="live",
         **analysis,
     )
     db.add(report)

@@ -1,4 +1,6 @@
 ﻿from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.core.db import SessionLocal
 from app.models.report import Report
@@ -17,11 +19,27 @@ def get_db():
     finally:
         db.close()
 
+class ReportStatusUpdate(BaseModel):
+    """Body for PATCH /reports/{id}/status."""
+    new_status: str
+
+
 def serialize_report(report: Report) -> dict:
-    """Converts a Report to a dict, excluding the large embedding vector."""
+    """Converts a Report to the HSE-facing shape.
+
+    Two fields on the ORM row are deliberately absent:
+
+    `anon_token` is the worker's private handle for their own report. It is
+    what makes anonymous follow-up possible, and handing it to every officer
+    who can list reports defeats that. It stays in the database and stays on
+    GET /reports/worker/{token}, which is the worker's own lookup.
+
+    `embedding` is a 384-float vector nothing human-facing reads; it added
+    about 3 KB to every row of a 500-row list response.
+    """
     return {
         "id": report.id,
-        "anon_token": report.anon_token,
+        "source": report.source,
         "raw_text": report.raw_text,
         "language": report.language,
         "status": report.status,
@@ -106,9 +124,17 @@ def check_status(token: str, db: Session = Depends(get_db)):
     description="Returns all submitted reports with full analysis details. Requires a valid "
                 "HSE staff login token.",
 )
-def list_reports(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    reports = db.query(Report).all()
-    return [serialize_report(r) for r in reports]
+def list_reports(
+    include_seed: bool = False,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    query = db.query(Report)
+    if not include_seed:
+        # Live submissions only. An officer triaging today's reports should
+        # not have the historical analysis corpus in the same queue.
+        query = query.filter(Report.source == "live")
+    return [serialize_report(r) for r in query.all()]
 
 @router.get(
     "/{report_id}",
@@ -128,11 +154,25 @@ def get_report(report_id: str, db: Session = Depends(get_db), user: dict = Depen
     description="Moves a report through the HSE workflow (e.g. pending -> in_review -> "
                 "verified -> closed). Requires a valid HSE staff login token.",
 )
-def update_report_status(report_id: str, new_status: str, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+def update_report_status(
+    report_id: str,
+    body: Optional[ReportStatusUpdate] = None,
+    new_status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    # Accepts the status either in a JSON body or as the `new_status` query
+    # parameter. The dashboard still sends a query parameter; taking both
+    # means this endpoint and its caller can be migrated separately instead
+    # of having to land in the same commit.
+    status = body.new_status if body is not None else new_status
+    if not status:
+        return {"error": "new_status is required, in the body or as a query parameter"}
+
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         return {"error": "Report not found"}
-    report.status = new_status
+    report.status = status
     db.commit()
     db.refresh(report)
     return {"id": report.id, "status": report.status}
