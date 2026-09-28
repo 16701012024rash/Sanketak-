@@ -44,6 +44,10 @@ services:
       # Narratives the predictions seeder joins fingerprints against.
       # Read-only: nothing in the container should write to it.
       - ./output:/app/output:ro
+      # Served by the API at /dashboard/, so the HSE dashboard needs no
+      # separate web server or editor plugin. Read-only: the container
+      # only ever serves these files.
+      - ./dashboard:/app/dashboard:ro
 
 volumes:
   pgdata:

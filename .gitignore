@@ -19,3 +19,5 @@ nlp/data/
 node_modules/
 .expo/
 .env.*
+# ...but the template must be committed, or a fresh clone cannot start.
+!.env.example

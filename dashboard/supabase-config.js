@@ -3,9 +3,26 @@
 // name and the HTML is not ours to change. The contents are no longer
 // Supabase — this is the FastAPI backend configuration.
 
+// Where the backend lives. No trailing slash.
+//
+// The API serves these pages itself at /dashboard/, so when that is how you
+// arrived, the backend is simply this origin -- which keeps working when the
+// dashboard is opened from another machine on the LAN by its IP, where a
+// hardcoded "localhost" would point the browser at itself and every request
+// would fail. Opening the .html files directly from disk (file://) has no
+// usable origin, so that case falls back to localhost.
+function resolveApiBaseUrl() {
+    const origin = window.location.origin;
+
+    if (origin && origin.indexOf("http") === 0) {
+        return origin.replace(/\/+$/, "");
+    }
+
+    return "http://localhost:8000";
+}
+
 window.SanketakConfig = {
-    // Base URL of the FastAPI backend. No trailing slash.
-    apiBaseUrl: "http://localhost:8000",
+    apiBaseUrl: resolveApiBaseUrl(),
 
     // localStorage keys, in one place so nothing hardcodes a string.
     tokenKey: "sanketak_access_token",
